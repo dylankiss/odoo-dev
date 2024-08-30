@@ -1,0 +1,353 @@
+#!/usr/bin/env python3
+"""Tool to export translation files from an Odoo database"""
+
+import argparse
+import base64
+import glob
+import os
+import subprocess
+import xmlrpc.client
+
+from operator import itemgetter
+from pathlib import Path
+from subprocess import Popen, PIPE
+
+
+def install_modules(modules, url, db, username, password, uninstall=False):
+    print("=======================================================")
+    print("Install Modules")
+    print("=======================================================\n")
+
+    common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
+    uid = common.authenticate(db, username, password, {})
+    print(f"Logged in as \"{username}\" (uid: {uid}) in database \"{db}\"\n")
+
+    models = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
+
+    if uninstall:
+        module_ids = models.execute_kw(
+            db,
+            uid,
+            password,
+            "ir.module.module",
+            "search",
+            [
+                [("name", "not in", modules), ("state", "=", "installed")],
+            ],
+        )
+        if module_ids:
+            print(f"Uninstalling unnecessary modules with ids {module_ids} ...\n")
+            print("    ⏱️ Depending on the number of modules, this could take a while ...\n")
+            models.execute_kw(
+                db,
+                uid,
+                password,
+                "ir.module.module",
+                "button_immediate_uninstall",
+                [
+                    module_ids,
+                ],
+            )
+            print("Modules uninstalled 🙌\n")
+
+    module_ids = models.execute_kw(
+        db,
+        uid,
+        password,
+        "ir.module.module",
+        "search",
+        [
+            [("name", "in", modules), ("state", "!=", "installed")],
+        ],
+    )
+    if module_ids:
+        print(f"Installing modules: {modules} with ids {module_ids} ...\n")
+        print("    ⏱️ Depending on the number of modules, this could take a while ...\n")
+        models.execute_kw(
+            db,
+            uid,
+            password,
+            "ir.module.module",
+            "button_immediate_install",
+            [
+                module_ids,
+            ],
+        )
+
+    print("All modules installed 🙌\n")
+
+
+def export_terms(modules, url, db, username, password, addons_path, base_i18n_path):
+    print("=======================================================")
+    print("Export Terms")
+    print("=======================================================\n")
+
+    common = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/common")
+    uid = common.authenticate(db, username, password, {})
+    print(f"Logged in as \"{username}\" (uid: {uid}) in database \"{db}\"\n")
+
+    models = xmlrpc.client.ServerProxy(f"{url}/xmlrpc/2/object")
+
+    modules_info = models.execute_kw(
+        db,
+        uid,
+        password,
+        "ir.module.module",
+        "search_read",
+        [
+            [("state", "=", "installed"), ("name", "in", modules)],
+            ["name"],
+        ],
+    )
+    modules_info = sorted(modules_info, key=itemgetter('name'))
+
+    print(f"Exporting translations for modules: {modules}")
+    print("│")
+
+    for i, module in enumerate(modules_info, start=1):
+        m_id = module["id"]
+        m_name = module["name"]
+        last_module = i == len(modules_info)
+
+        tree_prepend = "└──" if last_module else "├──"
+        print(f"{tree_prepend} Module: {m_name} (id: {m_id})")
+        export_id = models.execute_kw(
+            db,
+            uid,
+            password,
+            "base.language.export",
+            "create",
+            [
+                {
+                    "lang": "__new__",
+                    "format": "po",
+                    "modules": [[6, False, [m_id]]],
+                    "state": "choose",
+                },
+            ],
+        )
+        models.execute_kw(
+            db,
+            uid,
+            password,
+            "base.language.export",
+            "act_getfile",
+            [
+                [export_id],
+            ],
+        )
+        data = models.execute_kw(
+            db,
+            uid,
+            password,
+            "base.language.export",
+            "read",
+            [
+                [export_id],
+                ["data"],
+                {"bin_size": False},
+            ],
+        )
+
+        content = base64.b64decode(data[0]["data"])
+
+        if m_name == "base":
+            pot_path = base_i18n_path
+        else:
+            pot_path = os.path.join(addons_path, m_name, "i18n")
+
+        if not os.path.exists(pot_path):
+            os.mkdir(pot_path)
+
+        filepath = os.path.join(pot_path, f"{m_name}.pot")
+
+        with open(filepath, "wb") as f:
+            f.write(content)
+
+        tree_prepend = "    └──" if last_module else "│   └──"
+        print(f"{tree_prepend} 💾 {filepath}")
+        if not last_module:
+            print("│")
+
+    print("\nAll terms have been exported! 💪")
+
+
+def install_and_export_modules(modules_per_path, url, db, username, password, base_i18n_path, install, uninstall):
+    for modules_list, modules_path in modules_per_path:
+        if not modules_list:
+            continue
+
+        if install:
+            install_modules(modules_list, url, db, username, password, uninstall)
+
+        export_terms(modules_list, url, db, username, password, modules_path, base_i18n_path)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Export Odoo translation files (.pot) to each module's i18n folder."
+    )
+    parser.add_argument("-d", "--database", default="__epot__", help="The name of the database to use (default: __epot__)")
+    parser.add_argument("--db_host", default="localhost", help="The hostname of the database to use (default: localhost)")
+    parser.add_argument("--db_port", default=5432, help="The port of the database to use (default: 5432)")
+    parser.add_argument("--db_user", help="The user to log into the database")
+    parser.add_argument("--db_password", help="The password of the user to log into the database")
+    parser.add_argument("-l", "--login", default="admin", help="User account (default: admin)")
+    parser.add_argument("-p", "--password", help="Password of the user (default if login = 'admin': admin)")
+    parser.add_argument("--host", default="localhost", help="Host to connect to the server (default: localhost)")
+    parser.add_argument("--port", default=8069, help="Port to access the server (default: 8069 if not -s, 8169 if -s)")
+    parser.add_argument("-m", "--modules", help="The list of modules to export (comma-separated)")
+    parser.add_argument("-c", "--community-path", default="odoo", help="The relative path to your Odoo Community repo (default: odoo)")
+    parser.add_argument("-e", "--enterprise-path", default="enterprise", help="The relative path to your Odoo Enterprise repo (default: enterprise)")
+    parser.add_argument("-i", "--install", action="store_true", help="Install modules before exporting")
+    parser.add_argument("-u", "--uninstall", action="store_true", help="Uninstall unnecessary modules before exporting")
+    parser.add_argument("-s", "--start-server", action="store_true", help="Start an Odoo server automatically")
+    args = parser.parse_args()
+
+    base_i18n_path = os.path.join(Path(args.community_path).resolve(), "odoo/addons/base/i18n")
+    community_modules_path = os.path.join(Path(args.community_path).resolve(), "addons")
+    enterprise_modules_path = Path(args.enterprise_path).resolve()
+
+    community_modules = {
+        os.path.basename(os.path.dirname(f))
+        for f in glob.glob(os.path.join(community_modules_path, "*/__manifest__.py"))
+    }
+    community_modules.add("base")
+
+    enterprise_modules = {
+        os.path.basename(os.path.dirname(f))
+        for f in glob.glob(os.path.join(enterprise_modules_path, "*/__manifest__.py"))
+    }
+
+    host = args.host
+    port = 8169 if args.start_server else args.port
+    url = "%(protocol)s%(host)s:%(port)s" % {
+        "protocol": "" if "://" in host else "http://" if port != 443 else "https",
+        "host": host,
+        "port": port,
+    }
+
+    if args.login == "admin" and not args.password:
+        args.password = "admin"
+
+    if args.modules == "community":
+        modules = community_modules
+    elif args.modules == "enterprise":
+        modules = enterprise_modules
+    else:
+        modules = set((args.modules or "").split(","))
+
+    server_type = "Enterprise" if enterprise_modules & modules else "Community"
+
+    modules_per_path = [
+        (list(listed_modules & modules), path)
+        for listed_modules, path in [
+            (community_modules, community_modules_path),
+            (enterprise_modules, enterprise_modules_path),
+        ]
+    ]
+
+    if args.start_server:
+        # Start a temporary Odoo server to export the terms
+        addons_path = community_modules_path
+        if len(modules & enterprise_modules) > 0:
+            # We have enterprise modules to export. Launch an enterprise server.
+            addons_path = f"{enterprise_modules_path},{addons_path}"
+
+        odoo_bin_path = os.path.join(Path(args.community_path).resolve(), "odoo-bin")
+
+        print("=======================================================")
+        print(f"Starting Odoo Server ({server_type})")
+        print("=======================================================\n")
+
+        database_created = False
+
+        odoo_cmd = [
+            "python3",
+            odoo_bin_path,
+            "--addons-path",
+            addons_path,
+            "-d",
+            args.database,
+            "--xmlrpc-port",
+            str(port),
+        ]
+
+        if args.db_host:
+            odoo_cmd.extend(["--db_host", args.db_host])
+        if args.db_port:
+            odoo_cmd.extend(["--db_port", str(args.db_port)])
+        if args.db_user:
+            odoo_cmd.extend(["--db_user", args.db_user])
+        if args.db_password:
+            odoo_cmd.extend(["--db_password", args.db_password])
+
+        with Popen(odoo_cmd, stderr=PIPE) as p:
+            while True:
+                text = p.stderr.read1().decode("utf-8")
+                if "odoo.modules.loading: init db" in text:
+                    database_created = True
+                    print(f"🛠 Creating new database \"{args.database}\" ...")
+
+                if "odoo.modules.registry: Failed to load registry" in text:
+                    print("❗ An error occurred during loading! Terminating the process ...")
+                    break
+
+                if "odoo.modules.loading: Modules loaded." in text:
+                    print(f"✅ Database \"{args.database}\" loaded\n")
+
+                    # Close the pipe to prevent overfilling the buffer and blocking the process
+                    p.stderr.close()
+
+                    print("=======================================================")
+                    print("Odoo Server Started")
+                    print("=======================================================\n")
+
+                    install_and_export_modules(
+                        modules_per_path,
+                        url,
+                        args.database,
+                        args.login,
+                        args.password,
+                        base_i18n_path,
+                        args.install,
+                        args.uninstall,
+                    )
+                    break
+
+            print()
+            print("=======================================================")
+            print("Stopping Odoo Server")
+            print("=======================================================\n")
+
+            p.kill()
+
+        if database_created:
+            print(f"🗑️ Deleting database \"{args.database}\" ...\n")
+            dropdb_cmd = ["dropdb", args.database]
+
+            # Support dropping databases on another host (in Docker e.g.)
+            if args.db_host:
+                dropdb_cmd.extend(["--host", args.db_host])
+            if args.db_port:
+                dropdb_cmd.extend(["--port", str(args.db_port)])
+            if args.db_user:
+                dropdb_cmd.extend(["--username", args.db_user])
+
+            subprocess.run(dropdb_cmd, env=os.environ | {"PGPASSWORD": args.db_password} if args.db_password else os.environ)
+
+        print("=======================================================")
+        print("Odoo Server Stopped")
+        print("=======================================================")
+
+    else:
+        install_and_export_modules(
+            modules_per_path,
+            url,
+            args.database,
+            args.login,
+            args.password,
+            base_i18n_path,
+            args.install,
+            args.uninstall,
+        )

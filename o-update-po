@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""Tool to update translation files in an Odoo codebase"""
+
+import argparse
+import glob
+import os
+import subprocess
+
+from pathlib import Path
+
+
+def update_translation_files(modules, addons_path, base_i18n_path):
+    print("=======================================================")
+    print("Update Terms")
+    print("=======================================================\n")
+
+    print(f"Updating translations for modules: {modules}")
+    print("│")
+
+    success = failure =False
+
+    for i, module in enumerate(modules, start=1):
+        last_module = i == len(modules)
+
+        tree_prepend = "└──" if last_module else "├──"
+        print(f"{tree_prepend} Module: {module}")
+
+        i18n_path = os.path.join(addons_path, module, "i18n")
+        if module == "base":
+            i18n_path = base_i18n_path
+        if not os.path.exists(i18n_path):
+            tree_prepend = "    └──" if last_module else "│   └──"
+            print(f"{tree_prepend} ❌ No translations found")
+            continue
+
+        po_files = sorted(filter(lambda f: f.endswith(".po"), os.listdir(i18n_path)))
+        for j, po_file in enumerate(po_files, start=1):
+            last_po_file = j == len(po_files)
+
+            if last_module and last_po_file:
+                tree_prepend = "    └──"
+            elif last_po_file:
+                tree_prepend = "│   └──"
+            elif last_module:
+                tree_prepend = "    ├──"
+            else:
+                tree_prepend = "│   ├──"
+
+            po_file_path = os.path.join(i18n_path, po_file)
+            pot_file_path = os.path.join(i18n_path, f"{module}.pot")
+
+            result = subprocess.run(
+                [
+                    "msgmerge",
+                    "--no-wrap",
+                    "--no-fuzzy-matching",
+                    "-q",
+                    po_file_path,
+                    pot_file_path,
+                ],
+                capture_output=True,
+            )
+            if result.returncode:
+                failure = True
+                print(f"{tree_prepend} ❌ Updating {po_file_path} failed")
+                continue
+
+            result = subprocess.run(
+                [
+                    "msgattrib",
+                    "--no-wrap",
+                    "--no-fuzzy",
+                    "--no-obsolete",
+                    "-o",
+                    po_file_path,
+                ],
+                input=result.stdout,
+            )
+
+            if result.returncode:
+                failure = True
+                print(f"{tree_prepend} ❌ Updating {po_file_path} failed")
+            else:
+                success = True
+                print(f"{tree_prepend} 💾 Updated {po_file_path}")
+
+        if not last_module:
+            print("│")
+
+    if not success and failure:
+        print("\nAll translation files failed to update ... ❌")
+    elif success and failure:
+        print("\nSome translation files were updated correctly, while others failed ... ⚠️")
+    elif success and not failure:
+        print("\nAll translation files were updated correctly! 💪")
+
+
+def update_modules_translations(modules_per_path, base_i18n_path):
+    for modules_list, modules_path in modules_per_path:
+        if not modules_list:
+            continue
+
+        update_translation_files(modules_list, modules_path, base_i18n_path)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Update Odoo translation files (.po) according to a new version of its .pot file."
+    )
+    parser.add_argument("-m", "--modules", help="The list of modules to update (comma-separated)")
+    parser.add_argument("-c", "--community-path", default="odoo", help="The relative path to your Odoo Community repo (default: odoo)")
+    parser.add_argument("-e", "--enterprise-path", default="enterprise", help="The relative path to your Odoo Enterprise repo (default: enterprise)")
+    args = parser.parse_args()
+
+    base_i18n_path = os.path.join(Path(args.community_path).resolve(), "odoo/addons/base/i18n")
+    community_modules_path = os.path.join(Path(args.community_path).resolve(), "addons")
+    enterprise_modules_path = Path(args.enterprise_path).resolve()
+
+    community_modules = {
+        os.path.basename(os.path.dirname(f))
+        for f in glob.glob(os.path.join(community_modules_path, "*/__manifest__.py"))
+    }
+    community_modules.add("base")
+
+    enterprise_modules = {
+        os.path.basename(os.path.dirname(f))
+        for f in glob.glob(os.path.join(enterprise_modules_path, "*/__manifest__.py"))
+    }
+
+    if args.modules == "community":
+        modules = community_modules
+    elif args.modules == "enterprise":
+        modules = enterprise_modules
+    else:
+        modules = set((args.modules or "").split(","))
+
+    modules_per_path = [
+        (list(listed_modules & modules), path)
+        for listed_modules, path in [
+            (community_modules, community_modules_path),
+            (enterprise_modules, enterprise_modules_path),
+        ]
+    ]
+
+    update_modules_translations(modules_per_path, base_i18n_path)

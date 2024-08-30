@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+trap cleanup SIGINT SIGTERM ERR EXIT
+
+usage() {
+  cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch1,branch2>] [-e <repo1,repo2>]
+
+Setup the repositories for an Odoo Multiverse environment.
+Run this command from the directory you want to contain all Odoo versions.
+
+This will clone all necessary repositories and create folders per branch using git worktrees.
+The final structure would look like this:
+
+<multiverse-folder>
+├── 15.0
+│   └── ...
+├── 16.0
+│   └── ...
+├── 17.0
+│   ├── odoo (17.0)
+│   ├── enterprise (17.0)
+│   ├── design-themes (17.0)
+│   ├── documentation (17.0)
+│   ├── internal (symlink to ../internal)
+│   ├── upgrade (symlink to ../upgrade)
+│   └── upgrade-util (symlink to ../upgrade-util)
+├── ...
+│   └── ...
+├── internal (master)
+├── upgrade (master)
+└── upgrade-util (master)
+
+
+Options:
+  -h, --help                            Print this help and exit.
+  -v, --verbose                         Print script debug info.
+  -b <branches>, --branches <branches>  Specify which Odoo branches you want to add (comma-separated).
+                                        [default: 15.0,16.0,17.0,saas-17.1,saas-17.2,saas-17.4,master]
+  -e <repos>, --exclude <repos>         Specify which repositories to exclude (comma-separated).
+                                        Repositories included by default:
+                                          - odoo
+                                          - enterprise
+                                          - design-themes
+                                          - documentation
+                                          - internal
+                                          - upgrade
+                                          - upgrade-util
+EOF
+  exit
+}
+
+cleanup() {
+  trap - SIGINT SIGTERM ERR EXIT
+}
+
+# shellcheck disable=SC2034
+setup_formatting() {
+  if [[ -t 2 ]] && [[ -z "${NO_FORMATTING-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
+    NOFORMAT="\033[0m"
+    # Bold
+    B="\033[1m" B_END="\033[22m"
+    # Italic
+    I="\033[3m" I_END="\033[23m"
+    # Underline
+    U="\033[4m" U_END="\033[24m"
+    # Colors (_BG = Background, BR_ = Bright)
+    BLACK="\033[30m"   BLACK_BG="\033[40m"   BR_BLACK="\033[90m"   BR_BLACK_BG="\033[100m"
+    RED="\033[31m"     RED_BG="\033[41m"     BR_RED="\033[91m"     BR_RED_BG="\033[101m"
+    GREEN="\033[32m"   GREEN_BG="\033[42m"   BR_GREEN="\033[92m"   BR_GREEN_BG="\033[102m"
+    YELLOW="\033[33m"  YELLOW_BG="\033[43m"  BR_YELLOW="\033[93m"  BR_YELLOW_BG="\033[103m"
+    BLUE="\033[34m"    BLUE_BG="\033[44m"    BR_BLUE="\033[94m"    BR_BLUE_BG="\033[104m"
+    MAGENTA="\033[35m" MAGENTA_BG="\033[45m" BR_MAGENTA="\033[95m" BR_MAGENTA_BG="\033[105m"
+    CYAN="\033[36m"    CYAN_BG="\033[46m"    BR_CYAN="\033[96m"    BR_CYAN_BG="\033[106m"
+    WHITE="\033[37m"   WHITE_BG="\033[47m"   BR_WHITE="\033[97m"   BR_WHITE_BG="\033[107m"
+    DEFAULT="\033[39m" DEFAULT_BG="\033[49m"
+  else
+    NOFORMAT="" B="" B_END="" I="" I_END="" U="" U_END=""
+    BLACK=""   BLACK_BG=""   BR_BLACK=""   BR_BLACK_BG=""
+    RED=""     RED_BG=""     BR_RED=""     BR_RED_BG=""
+    GREEN=""   GREEN_BG=""   BR_GREEN=""   BR_GREEN_BG=""
+    YELLOW=""  YELLOW_BG=""  BR_YELLOW=""  BR_YELLOW_BG=""
+    BLUE=""    BLUE_BG=""    BR_BLUE=""    BR_BLUE_BG=""
+    MAGENTA="" MAGENTA_BG="" BR_MAGENTA="" BR_MAGENTA_BG=""
+    CYAN=""    CYAN_BG=""    BR_CYAN=""    BR_CYAN_BG=""
+    WHITE=""   WHITE_BG=""   BR_WHITE=""   BR_WHITE_BG=""
+    DEFAULT="" DEFAULT_BG=""
+  fi
+}
+
+msg() {
+  echo >&2 -e "${1-}"
+}
+
+die() {
+  local msg=$1
+  local code=${2-1}
+  msg "$msg"
+  exit "$code"
+}
+
+parse_params() {
+  branches=("15.0" "16.0" "17.0" "saas-17.1" "saas-17.2" "saas-17.4" "master")
+  exclude=("___DUMMY___")
+
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    -v | --verbose) set -x ;;
+    --no-formatting) NO_FORMATTING=1 ;;
+    -b | --branches)
+        IFS=',' read -ra branches <<< "${2-}"
+        shift
+        ;;
+    -e | --exclude)
+        IFS=',' read -ra exclude <<< "${2-}"
+        shift
+        ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  return 0
+}
+
+parse_params "$@"
+setup_formatting
+
+# The directory acting as a root for each Odoo-related source repository
+worktree_source_dir=".worktree-source"
+# The directory to clone each bare repository's files in
+bare_dir=".bare"
+
+msg "🟣 ${MAGENTA}${B}Odoo Multiverse${NOFORMAT}\n"
+
+msg "🗄️ ${WHITE}${B}Setting up source repositories${NOFORMAT}\n"
+
+if [ -d "$worktree_source_dir" ]; then
+  msg "${BR_BLACK}The worktree source directory ${U}$(pwd)/$worktree_source_dir${U_END} already exists.${NOFORMAT}\n"
+else
+  msg "Creating worktree source directory ${U}$(pwd)/$worktree_source_dir${U_END} ...\n"
+  mkdir "$worktree_source_dir"
+fi
+pushd "$worktree_source_dir" > /dev/null
+
+# Repositories where we need to check out each specified branch
+multibranch_repos=("odoo" "enterprise" "design-themes" "documentation")
+# Repositories where we only check out the default branch and symlink it
+unibranch_repos=("upgrade" "upgrade-util" "internal")
+
+# Remove excluded repositories
+for repo in "${exclude[@]}"; do
+  if [[ " ${multibranch_repos[*]} " == *" $repo "* ]]; then
+    multibranch_repos=("${multibranch_repos[@]/$repo}")
+  fi
+  if [[ " ${unibranch_repos[*]} " == *" $repo "* ]]; then
+    unibranch_repos=("${unibranch_repos[@]/$repo}")
+  fi
+done
+
+# Clone all multibranch repositories as bare ones to create worktrees off later
+for repo in "${multibranch_repos[@]}"; do
+  if [ -d "$repo" ]; then
+    msg "${BR_BLACK}Source directory for repository ${B}$repo${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
+  else
+    msg "Creating source directory for repository ${B}$repo${B_END} at ${U}$(pwd)/$repo${U_END} ..."
+    mkdir "$repo"
+  fi
+  pushd "$repo" > /dev/null
+
+  repo_url="git@github.com:odoo/$repo.git"
+  dev_repo_url="git@github.com:odoo-dev/$repo.git"
+
+  if [ -d "$bare_dir" ]; then
+    msg "${BR_BLACK}Bare repository ${B}$repo${B_END} already exists at ${U}$(pwd)/$bare_dir${NOFORMAT}"
+  else
+    msg "Cloning bare repository ${B}$repo${B_END} to ${U}$(pwd)/$bare_dir${U_END} ..."
+    git clone --bare "$repo_url" "$bare_dir"
+    pushd "$bare_dir" > /dev/null
+    msg "Adjusting origin fetch locations ..."
+    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+
+    # Add odoo-dev remote for odoo, enterprise and design-themes
+    if [[ "$repo" != "documentation" ]]; then
+      msg "Adding 'odoo-dev' remote as 'dev' ..."
+      git remote add "dev" "$dev_repo_url"
+      git remote set-url --push "origin" "you_should_not_push_on_this_repository"
+    fi
+
+    popd > /dev/null
+    msg "Setting .git file contents ..."
+    echo "gitdir: ./$bare_dir" > .git
+
+    msg "Fetching all branches ..."
+    git fetch
+  fi
+  msg "Pruning non-existing worktrees ...\n"
+  git worktree prune
+
+  popd > /dev/null
+done
+
+popd > /dev/null
+
+# Clone all unibranch repositories
+for repo in "${unibranch_repos[@]}"; do
+  if [ -d "$repo" ]; then
+    msg "${BR_BLACK}Repository ${B}$repo${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
+  else
+    repo_url="git@github.com:odoo/$repo.git"
+    msg "Cloning repository ${B}$repo${B_END} to ${U}$(pwd)/$repo${U_END} ..."
+    git clone "$repo_url" "$repo"
+  fi
+done
+
+# Add a git worktree for each branch
+for branch in "${branches[@]}"; do
+  msg "\n🌳 ${WHITE}${B}Setting up worktrees for branch ${U}$branch${NOFORMAT}\n"
+  mkdir -p "$branch"
+  pushd "$branch" > /dev/null
+
+  for repo in "${multibranch_repos[@]}"; do
+    if [ -d "$repo" ]; then
+      msg "${BR_BLACK}Worktree for repository ${B}$repo${B_END} and branch ${B}$branch${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
+    else
+      msg "${DEFAULT}Adding a worktree for repository ${B}$repo${B_END} and branch ${B}$branch${B_END} at ${U}$(pwd)/$repo${U_END} ...${BR_BLACK}"
+      pushd "../$worktree_source_dir/$repo" > /dev/null
+      git worktree add "../../$branch/$repo" "$branch"
+      pushd "../../$branch/$repo" > /dev/null
+      git branch --set-upstream-to "origin/$branch"
+      popd > /dev/null
+      popd > /dev/null
+    fi
+  done
+
+  for repo in "${unibranch_repos[@]}"; do
+    if [ -d "$repo" ]; then
+      msg "${BR_BLACK}Linked repository ${B}$repo${B_END} for branch ${B}$branch${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
+    else
+      msg "${DEFAULT}Linking repository ${B}$repo${B_END} for branch ${B}$branch${B_END} at ${U}$(pwd)/$repo${U_END} ..."
+      ln -s "../$repo" "$repo"
+    fi
+  done
+
+  popd > /dev/null
+done
+
+msg "\n💪 ${B}Great!${B_END} You're now ready to work on multiple versions of Odoo."
