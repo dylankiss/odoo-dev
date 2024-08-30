@@ -14,6 +14,11 @@ This will clone all necessary repositories and create folders per branch using g
 The final structure would look like this:
 
 <multiverse-folder>
+├── .worktree-source
+│   ├── odoo (bare)
+│   ├── enterprise (bare)
+│   ├── design-themes (bare)
+│   └── documentation (bare)
 ├── 15.0
 │   └── ...
 ├── 16.0
@@ -163,6 +168,10 @@ done
 
 # Clone all multibranch repositories as bare ones to create worktrees off later
 for repo in "${multibranch_repos[@]}"; do
+  if [ -z "$repo" ]; then
+    continue
+  fi
+
   if [ -d "$repo" ]; then
     msg "${BR_BLACK}Source directory for repository ${B}$repo${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
   else
@@ -207,6 +216,10 @@ popd > /dev/null
 
 # Clone all unibranch repositories
 for repo in "${unibranch_repos[@]}"; do
+  if [ -z "$repo" ]; then
+    continue
+  fi
+
   if [ -d "$repo" ]; then
     msg "${BR_BLACK}Repository ${B}$repo${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
   else
@@ -218,11 +231,19 @@ done
 
 # Add a git worktree for each branch
 for branch in "${branches[@]}"; do
+  if [ -z "$branch" ]; then
+    continue
+  fi
+
   msg "\n🌳 ${WHITE}${B}Setting up worktrees for branch ${U}$branch${NOFORMAT}\n"
   mkdir -p "$branch"
   pushd "$branch" > /dev/null
 
   for repo in "${multibranch_repos[@]}"; do
+    if [ -z "$repo" ]; then
+      continue
+    fi
+
     if [ -d "$repo" ]; then
       msg "${BR_BLACK}Worktree for repository ${B}$repo${B_END} and branch ${B}$branch${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
     else
@@ -237,6 +258,10 @@ for branch in "${branches[@]}"; do
   done
 
   for repo in "${unibranch_repos[@]}"; do
+    if [ -z "$repo" ]; then
+      continue
+    fi
+
     if [ -d "$repo" ]; then
       msg "${BR_BLACK}Linked repository ${B}$repo${B_END} for branch ${B}$branch${B_END} already exists at ${U}$(pwd)/$repo${NOFORMAT}"
     else

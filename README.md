@@ -47,6 +47,11 @@ After that is done, your directory structure should look a bit like this:
 
 ```
 <multiverse-folder>
+├── .worktree-source
+│   ├── odoo (bare)
+│   ├── enterprise (bare)
+│   ├── design-themes (bare)
+│   └── documentation (bare)
 ├── 15.0
 │   └── ...
 ├── 16.0
