@@ -62,7 +62,7 @@ cleanup() {
 
 # shellcheck disable=SC2034
 setup_formatting() {
-  if [[ -t 2 ]] && [[ -z "${NO_FORMATTING-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
+  if [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
     NOFORMAT="\033[0m"
     # Bold
     B="\033[1m" B_END="\033[22m"
@@ -113,7 +113,7 @@ parse_params() {
     case "${1-}" in
     -h | --help) usage ;;
     -v | --verbose) set -x ;;
-    --no-formatting) NO_FORMATTING=1 ;;
+    --no-color) NO_COLOR=1 ;;
     -b | --branches)
         IFS=',' read -ra branches <<< "${2-}"
         shift

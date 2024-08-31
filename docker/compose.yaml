@@ -1,0 +1,45 @@
+name: odoo-devcontainer
+
+services:
+  _dev_build:
+    image: odoo-devcontainer-build
+    command: [ "echo", "Odoo Dev Container Build Completed!" ]
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - ODOO_DEP_BRANCH=${ODOO_DEP_BRANCH}
+
+  dev:
+    image: odoo-devcontainer-build
+    depends_on:
+      - _dev_build
+      - db
+    volumes:
+      - type: bind
+        source: ${ODOO_WORKSPACE_FOLDER}
+        target: /code
+    ports:
+      - "8069:8069"
+      - "8071:8071"
+      - "8072:8072"
+      - "8073:8073"
+    working_dir: /code
+    stdin_open: true
+    tty: true
+
+  db:
+    image: postgres:16
+    container_name: db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+
+volumes:
+  odoo-db-data: {}
