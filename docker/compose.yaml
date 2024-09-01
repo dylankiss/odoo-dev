@@ -6,7 +6,6 @@ services:
     command: [ "echo", "Odoo Dev Container Build Completed!" ]
     build:
       context: .
-      dockerfile: ./Dockerfile
       args:
         - ODOO_DEP_BRANCH=${ODOO_DEP_BRANCH}
 
@@ -16,9 +15,7 @@ services:
       - _dev_build
       - db
     volumes:
-      - type: bind
-        source: ${ODOO_WORKSPACE_FOLDER}
-        target: /code
+      - ${ODOO_WORKSPACE_FOLDER}:/code
     ports:
       - "8069:8069"
       - "8071:8071"

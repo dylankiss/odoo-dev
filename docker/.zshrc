@@ -1,5 +1,5 @@
-# Add Odoo tools to path
-export PATH="/code/odoo-dev:$PATH"
+# Setup the path
+export PATH=/code/odoo-dev:$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Path to your Oh My Zsh installation
 export ZSH=$HOME/.oh-my-zsh

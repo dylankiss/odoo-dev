@@ -13,12 +13,12 @@ You can run any command with the `-h` or `--help` option to see all possible opt
 
 ## Table of Contents
 
-| Tool                                                               | Purpose |
-| ------------------------------------------------------------------ | ---- |
-| [`o-dev-start` and `o-dev-stop`](#o-dev-start-and-o-dev-stop-bash) |  |
-| [`o-multiverse`](#o-multiverse-bash)                               |  |
-| [`o-export-pot`](#o-export-pot-python)                             |  |
-| [`o-update-po`](#o-update-po-python)                               |  |
+| Tool                                                               | Purpose                                                |
+| ------------------------------------------------------------------ | ------------------------------------------------------ |
+| [`o-dev-start` and `o-dev-stop`](#o-dev-start-and-o-dev-stop-bash) | Run/Test Odoo in a fully configured Docker container   |
+| [`o-multiverse`](#o-multiverse-bash)                               | Setup a workspace to work in multiple branches of Odoo |
+| [`o-export-pot`](#o-export-pot-python)                             | Export `.pot` files for one or more modules            |
+| [`o-update-po`](#o-update-po-python)                               | Update `.po` files for one or more modules             |
 
 
 ## [`o-dev-start`](o-dev-start) and [`o-dev-stop`](o-dev-stop) <sup>(Bash)</sup>
@@ -53,6 +53,21 @@ If you want to stop the containers and clean them up, you simply run:
 ```console
 $ o-dev-stop
 ```
+
+### More details on the Docker configuration
+
+The configuration for the Docker containers is located in the `docker` folder in this repository. The [`compose.yaml`](docker/compose.yaml) file defines a `_dev_build` service that builds the main development container, a `dev` service that runs it with the right configuration and file mounts, and a `db` service that runs the PostgreSQL server.
+
+The development container configuration is laid out in the [`Dockerfile`](docker/Dockerfile) and does the following:
+
+- Use [Ubuntu 24.04 (Noble Numbat)](https://hub.docker.com/_/ubuntu) as a base image.
+- Add [FlameGraph](https://github.com/brendangregg/FlameGraph) and the required [GeoIP databases](https://github.com/maxmind/MaxMind-DB/tree/main/test-data).
+- Install all required and useful Debian packages to develop and run Odoo.
+- Set up an `odoo` user with `sudo` rights to use in the container.
+- Install [`wkhtmltox`](https://github.com/wkhtmltopdf/packaging/releases) using the right version and architecture.
+- Install all required `node` modules.
+- Set up `zsh` as default shell with [Oh My Zsh!](https://ohmyz.sh/) and the [Spaceship](https://spaceship-prompt.sh/) theme for the `odoo` user.
+- Install all `pip` packages according to the Odoo version specified using the environment variable `ODOO_DEP_BRANCH`.
 
 
 ## [`o-multiverse`](o-multiverse) <sup>(Bash)</sup>
