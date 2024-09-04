@@ -89,7 +89,7 @@ $ o-dev-stop
 
 ### More details on the Docker configuration
 
-The configuration for the Docker containers is located in the `docker` folder in this repository. The [`compose.yaml`](docker/compose.yaml) file defines a `_dev_build` service that builds the main development container, a `dev` service that runs it with the right configuration and file mounts, and a `db` service that runs the PostgreSQL server.
+The configuration for the Docker containers is located in the `docker` folder in this repository. The [`compose.yaml`](docker/compose.yaml) file defines an `odoo` service that runs the development container with the right configuration and file mounts, and a `db` service that runs the PostgreSQL server.
 
 The development container configuration is laid out in the [`Dockerfile`](docker/Dockerfile) and does the following:
 
@@ -125,7 +125,7 @@ $ o-multiverse
 > The repositories checked out by default are: `odoo`, `enterprise`, `design-themes`, `documentation`, `internal`, `upgrade` and `upgrade-util`. If you want to exclude any of these (because you don't need them or don't have access to them), you can use the `-e` or `--exclude` option with a comma-separated list of repositories to exclude (from the list defined above).
 
 > [!TIP]
-> If you're using [Visual Studio Code](https://code.visualstudio.com/), you can provide the `--vscode` flag and the script will copy some [default config] including e.g. a debug launch configuration that works with the Docker container started via [`o-dev-start`](#o-dev-start-and-o-dev-stop-bash).
+> If you're using [Visual Studio Code](https://code.visualstudio.com/), you can provide the `--vscode` flag and the script will copy some [default config](multiverse-config/.vscode) including e.g. a debug launch configuration that works with the Docker container started via [`o-dev-start`](#o-dev-start-and-o-dev-stop-bash).
 
 **You can run the command as many times as you want. It will skip repositories and branches that already exist and only set up the ones that don't exist yet.**
 
