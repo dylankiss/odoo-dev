@@ -140,13 +140,13 @@ export ODOO_WORKSPACE_DIR
 if ! $shell; then
   if $build; then
     msg "🏗️ ${WHITE}${B}Force rebuilding the Docker image${NOFORMAT}"
-    msg "   ${BR_BLACK}${I}This could take a while ...${NOFORMAT}\n"
+    msg "  ${BR_BLACK}${I}This could take a while ...${NOFORMAT}\n"
     $docker compose -f "$script_dir/docker/compose.yaml" down
     $docker compose -f "$script_dir/docker/compose.yaml" build --no-cache odoo
   fi
 
   msg "\n📦 ${WHITE}${B}Starting the Docker containers${NOFORMAT}\n"
-  msg "   ${BR_BLACK}${I}If it's the first time, building could take a while ...${NOFORMAT}\n"
+  msg "  ${BR_BLACK}${I}If it's the first time, building could take a while ...${NOFORMAT}\n"
   $docker compose -f "$script_dir/docker/compose.yaml" up -d
 fi
 

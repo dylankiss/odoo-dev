@@ -5,17 +5,18 @@ import argparse
 import glob
 import os
 import subprocess
+import sys
 
 from pathlib import Path
 
+from utils.terminal_logger import TerminalLogger, log
 
-def update_translation_files(modules, addons_path, base_i18n_path):
-    print("=======================================================")
-    print("Update Terms")
-    print("=======================================================\n")
 
-    print(f"Updating translations for modules: {modules}")
-    print("│")
+def update_translation_files(modules, addons_path, base_i18n_path, tl):
+    log(f"💬 {tl.WHITE}{tl.B}Export Terms{tl.NOFORMAT}\n")
+
+    log(f"Updating translations for modules {tl.B}{f'{tl.B_END}, {tl.B}'.join(modules)}{tl.B_END} ...")
+    log("│")
 
     success = failure =False
 
@@ -23,14 +24,14 @@ def update_translation_files(modules, addons_path, base_i18n_path):
         last_module = i == len(modules)
 
         tree_prepend = "└──" if last_module else "├──"
-        print(f"{tree_prepend} Module: {module}")
+        log(f"{tree_prepend} {tl.B}{module}{tl.B_END}")
 
         i18n_path = os.path.join(addons_path, module, "i18n")
         if module == "base":
             i18n_path = base_i18n_path
         if not os.path.exists(i18n_path):
             tree_prepend = "    └──" if last_module else "│   └──"
-            print(f"{tree_prepend} ❌ No translations found")
+            log(f"{tree_prepend} {tl.BR_BLACK}No translations found!{tl.NOFORMAT}")
             continue
 
         po_files = sorted(filter(lambda f: f.endswith(".po"), os.listdir(i18n_path)))
@@ -62,7 +63,7 @@ def update_translation_files(modules, addons_path, base_i18n_path):
             )
             if result.returncode:
                 failure = True
-                print(f"{tree_prepend} ❌ Updating {po_file_path} failed")
+                log(f"{tree_prepend} ❌ {tl.RED}Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgmerge{tl.I_END}!{tl.NOFORMAT}")
                 continue
 
             result = subprocess.run(
@@ -79,28 +80,28 @@ def update_translation_files(modules, addons_path, base_i18n_path):
 
             if result.returncode:
                 failure = True
-                print(f"{tree_prepend} ❌ Updating {po_file_path} failed")
+                log(f"{tree_prepend} ❌ {tl.RED}Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgattrib{tl.I_END}!{tl.NOFORMAT}")
             else:
                 success = True
-                print(f"{tree_prepend} 💾 Updated {po_file_path}")
+                log(f"{tree_prepend} Updated {tl.U}{po_file_path}{tl.U_END} ✔️")
 
         if not last_module:
-            print("│")
+            log("│")
 
     if not success and failure:
-        print("\nAll translation files failed to update ... ❌")
+        log(f"\n{tl.RED}All translation files failed to update ...{tl.NOFORMAT} ❌")
     elif success and failure:
-        print("\nSome translation files were updated correctly, while others failed ... ⚠️")
+        log(f"\n{tl.YELLOW}Some translation files were updated correctly, while others failed ...{tl.NOFORMAT} ⚠️")
     elif success and not failure:
-        print("\nAll translation files were updated correctly! 💪")
+        log(f"\n{tl.GREEN}All translation files were updated correctly!{tl.NOFORMAT} 💪")
 
 
-def update_modules_translations(modules_per_path, base_i18n_path):
+def update_modules_translations(modules_per_path, base_i18n_path, tl):
     for modules_list, modules_path in modules_per_path:
         if not modules_list:
             continue
 
-        update_translation_files(modules_list, modules_path, base_i18n_path)
+        update_translation_files(modules_list, modules_path, base_i18n_path, tl)
 
 
 if __name__ == "__main__":
@@ -110,7 +111,12 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--modules", help="The list of modules to update (comma-separated)")
     parser.add_argument("-c", "--community-path", default="odoo", help="The relative path to your Odoo Community repo (default: odoo)")
     parser.add_argument("-e", "--enterprise-path", default="enterprise", help="The relative path to your Odoo Enterprise repo (default: enterprise)")
+    parser.add_argument("--no-color", action="store_true", help="Disable colors in the terminal")
     args = parser.parse_args()
+
+    tl = TerminalLogger(args.no_color)
+
+    log(f"🟣 {tl.MAGENTA}{tl.B}Odoo PO Update{tl.NOFORMAT}\n")
 
     base_i18n_path = os.path.join(Path(args.community_path).resolve(), "odoo/addons/base/i18n")
     community_modules_path = os.path.join(Path(args.community_path).resolve(), "addons")
@@ -131,15 +137,18 @@ if __name__ == "__main__":
         modules = community_modules
     elif args.modules == "enterprise":
         modules = enterprise_modules
+    elif args.modules:
+        modules = set(args.modules.split(","))
     else:
-        modules = set((args.modules or "").split(","))
+        log(f"❗ {tl.RED}No modules provided to update! Terminating the process ...{tl.NOFORMAT}")
+        sys.exit(1)
 
     modules_per_path = [
-        (list(listed_modules & modules), path)
+        (sorted(listed_modules & modules), path)
         for listed_modules, path in [
             (community_modules, community_modules_path),
             (enterprise_modules, enterprise_modules_path),
         ]
     ]
 
-    update_modules_translations(modules_per_path, base_i18n_path)
+    update_modules_translations(modules_per_path, base_i18n_path, tl)
