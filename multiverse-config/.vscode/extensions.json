@@ -1,0 +1,20 @@
+{
+    "recommendations": [
+        "njpwerner.autodocstring",
+        "ms-azuretools.vscode-docker",
+        "tamasfe.even-better-toml",
+        "charliermarsh.ruff",
+        "kevinrose.vsc-python-indent",
+        "mechatroner.rainbow-csv",
+        "janisdd.vscode-edit-csv",
+        "dbaeumer.vscode-eslint",
+        "mrorz.language-gettext",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "pkief.material-icon-theme",
+        "trinhanhngoc.vscode-odoo",
+        "redhat.vscode-xml",
+        "ms-python.python",
+        "ms-python.debugpy",
+    ]
+}

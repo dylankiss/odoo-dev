@@ -74,6 +74,7 @@ RUN set -x; \
         python3 \
         python3-asn1crypto \
         python3-dbfread \
+        python3-debugpy \
         python3-dev \
         python3-gevent \
         python3-google-auth \
@@ -167,7 +168,7 @@ RUN python3 -m pip install --no-cache-dir -r /tmp/doc_requirements.txt && \
 
 WORKDIR /code
 
-# Expose Odoo services
-EXPOSE 8069 8071 8072 8073
+# Expose useful ports
+EXPOSE 5678 8069 8071 8072 8073
 
 CMD [ "zsh" ]

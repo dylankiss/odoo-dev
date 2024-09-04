@@ -1,22 +1,19 @@
-name: odoo-devcontainer
+name: odoo-dev
 
 services:
-  _dev_build:
-    image: odoo-devcontainer-build
-    command: [ "echo", "Odoo Dev Container Build Completed!" ]
+  odoo:
     build:
       context: .
       args:
         - ODOO_DEP_BRANCH=${ODOO_DEP_BRANCH}
-
-  dev:
-    image: odoo-devcontainer-build
     depends_on:
-      - _dev_build
       - db
     volumes:
-      - ${ODOO_WORKSPACE_FOLDER}:/code
+      - ${ODOO_WORKSPACE_DIR}:/code
+      - ${ODOO_DEVTOOLS_DIR}:/home/odoo/bin
+      - ./aliases.zsh:/home/odoo/.oh-my-zsh/custom/aliases.zsh
     ports:
+      - "5678:5678"
       - "8069:8069"
       - "8071:8071"
       - "8072:8072"

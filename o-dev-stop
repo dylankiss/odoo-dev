@@ -12,8 +12,8 @@ Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v]
 Stop the Docker container for Odoo development and clean up.
 
 Options:
-  -h, --help                               Print this help and exit.
-  -v, --verbose                            Print script debug info.
+  -h, --help      Print this help and exit.
+  -v, --verbose   Print script debug info.
 EOF
   exit
 }
@@ -68,9 +68,6 @@ die() {
 }
 
 parse_params() {
-  branch="master"
-  workspace="~/code/odoo"
-
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
@@ -97,8 +94,9 @@ fi
 
 msg "🟣 ${MAGENTA}${B}Odoo Development Container${NOFORMAT}\n"
 
-export ODOO_DEP_BRANCH=""
-export ODOO_WORKSPACE_FOLDER=""
+export ODOO_DEP_BRANCH=master
+export ODOO_DEVTOOLS_DIR=~/code/odoo
+export ODOO_WORKSPACE_DIR="$script_dir"
 
 msg "🪣 ${WHITE}${B}Stopping the Docker containers and cleaning up${NOFORMAT}\n"
 $docker compose -f "$script_dir/docker/compose.yaml" down

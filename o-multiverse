@@ -3,15 +3,18 @@
 set -Eeuo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch1,branch2>] [-e <repo1,repo2>]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branches>] [-e <repos>]
+       [--vscode]
 
 Setup the repositories for an Odoo Multiverse environment.
 Run this command from the directory you want to contain all Odoo versions.
 
-This will clone all necessary repositories and create folders per branch using git worktrees.
-The final structure would look like this:
+This will clone all necessary repositories and create folders per branch using
+git worktrees. The final structure would look like this:
 
 <multiverse-folder>
 ├── .worktree-source
@@ -30,7 +33,8 @@ The final structure would look like this:
 │   ├── documentation (17.0)
 │   ├── internal (symlink to ../internal)
 │   ├── upgrade (symlink to ../upgrade)
-│   └── upgrade-util (symlink to ../upgrade-util)
+│   ├── upgrade-util (symlink to ../upgrade-util)
+│   └── pyproject.toml
 ├── ...
 │   └── ...
 ├── internal (master)
@@ -39,19 +43,23 @@ The final structure would look like this:
 
 
 Options:
-  -h, --help                            Print this help and exit.
-  -v, --verbose                         Print script debug info.
-  -b <branches>, --branches <branches>  Specify which Odoo branches you want to add (comma-separated).
-                                        [default: 15.0,16.0,17.0,saas-17.1,saas-17.2,saas-17.4,master]
-  -e <repos>, --exclude <repos>         Specify which repositories to exclude (comma-separated).
-                                        Repositories included by default:
-                                          - odoo
-                                          - enterprise
-                                          - design-themes
-                                          - documentation
-                                          - internal
-                                          - upgrade
-                                          - upgrade-util
+  -h, --help              Print this help and exit.
+  -v, --verbose           Print script debug info.
+  -b <branches>,          Specify which Odoo branches you want to add
+  --branches <branches>   (comma-separated).
+                          [default:
+                            15.0,16.0,17.0,saas-17.1,saas-17.2,saas-17.4,master
+                          ]
+  -e <repos>,             Specify which repositories to exclude
+  --exclude <repos>       (comma-separated). Repositories included by default:
+                            - odoo
+                            - enterprise
+                            - design-themes
+                            - documentation
+                            - internal
+                            - upgrade
+                            - upgrade-util
+  --vscode                Copy tools and debug configuration for VS Code
 EOF
   exit
 }
@@ -108,6 +116,7 @@ die() {
 parse_params() {
   branches=("15.0" "16.0" "17.0" "saas-17.1" "saas-17.2" "saas-17.4" "master")
   exclude=("___DUMMY___")
+  vscode=false
 
   while :; do
     case "${1-}" in
@@ -122,6 +131,7 @@ parse_params() {
         IFS=',' read -ra exclude <<< "${2-}"
         shift
         ;;
+    --vscode) vscode=true ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -134,6 +144,8 @@ parse_params() {
 parse_params "$@"
 setup_formatting
 
+# The root directory where the multiverse is set up
+worktrees_root_dir="$(pwd)"
 # The directory acting as a root for each Odoo-related source repository
 worktree_source_dir=".worktree-source"
 # The directory to clone each bare repository's files in
@@ -252,6 +264,14 @@ for branch in "${branches[@]}"; do
       git worktree add "../../$branch/$repo" "$branch"
       pushd "../../$branch/$repo" > /dev/null
       git branch --set-upstream-to "origin/$branch"
+
+      # Make the worktree links relative (so they also work in a Docker container)
+      sed -i "s@$worktrees_root_dir@../..@g" .git
+      worktree_dir=$(sed "s/gitdir: //g" '.git')
+      pushd "$worktree_dir" > /dev/null
+      sed -i "s@$worktrees_root_dir@../../../../..@g" gitdir
+      popd > /dev/null
+
       popd > /dev/null
       popd > /dev/null
     fi
@@ -269,6 +289,14 @@ for branch in "${branches[@]}"; do
       ln -s "../$repo" "$repo"
     fi
   done
+
+  # Copy Ruff config
+  cp "$script_dir/multiverse-config/pyproject.toml" .
+
+  # Copy VSCode config
+  if $vscode; then
+    cp -r "$script_dir/multiverse-config/.vscode" .
+  fi
 
   popd > /dev/null
 done

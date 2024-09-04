@@ -30,17 +30,50 @@ Using these tools you can automatically start and stop a fully configured Docker
 
 The Docker container is carefully configured to resemble the latest [Runbot](https://runbot.odoo.com/) container and thus tries to eliminate discrepancies between your local system and the CI server.
 
-You can start a development container easily like this:
+You can easily start a development container like this:
 
 ```console
 $ o-dev-start -b master -w ~/code/odoo
 ```
 
-This will build a Docker image using the `master` branch dependencies, start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
+This will build a Docker image (if changed from the last config) using the `master` branch dependencies, start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
+
+> [!TIP]
+> If you want to run another shell into the container, you can run the command with the `--shell` option: `o-dev-start --shell` in another terminal.
+
+> [!TIP]
+> If you want to force a rebuild of the image, you can run the command with the `--build` option: `o-dev-start --build ...`.
 
 The container exposes ports `8069`, `8071`, `8072` and `8073`, so you could run up to 4 Odoo instances simultaneously (each on one of the ports) and access them from your host machine at `http://localhost:<port>`.
 
-The command will also start a separate PostgreSQL container that you can access from your host machine at `localhost:5432` with `odoo` as username and password. Inside your other Docker container, the hostname of the PostgreSQL server is `db`. You might need this information if you manually start an Odoo server in your container by providing these additional arguments:
+The command will also start a separate PostgreSQL container that you can access from your host machine at `localhost:5432` with `odoo` as username and password. Inside your other Docker container, the hostname of the PostgreSQL server is `db`.
+
+The container contains some helpful aliases that you can use to run and debug Odoo from your workspace (*either `/code` or `/code/<branch>` if you're using the multiverse setup*). They contain the right configuration to connect to the PostgreSQL database and set very high time limits by default (useful for debugging). You can check them in [`docker/aliases.zsh`](docker/aliases.zsh).
+
+**Running Odoo** (from within the workspace folder)
+- `o-bin` can be used instead of `odoo/odoo-bin` with the same arguments.
+- `o-bin-c` already contains the addons path for a Community server.
+- `o-bin-e` already contains the addons path for an Enterprise server.
+
+**Debugging Odoo** (from within the workspace folder)
+- `o-bin-deb` can be used instead of `odoo/odoo-bin` with the same arguments, and starts a debug session using [`debugpy`](https://github.com/microsoft/debugpy) and waits for your local debugger to connect to it before starting.
+
+> [!TIP]
+> A compatible [Visual Studio Code](https://code.visualstudio.com/) debug configuration is available in [`multiverse-config/.vscode/launch.json`](multiverse-config/.vscode/launch.json)
+
+- `o-bin-deb-c` already contains the addons path for a Community server.
+- `o-bin-deb-e` already contains the addons path for an Enterprise server.
+
+The most common PostgreSQL commands have also been aliased to use the right database and credentials, so you could just run e.g. `dropdb <database>`.
+
+Examples:
+```console
+$ o-bin-e -d my_database -i account_accountant
+
+$ o-bin-deb --addons-path=odoo/addons -d existing_database
+```
+
+If you would start an Odoo server without the aliases, you would need to provide the database information like this:
 
 ```console
 $ ./odoo-bin --db_host=db --db_user=odoo --db_password=odoo ...
@@ -61,13 +94,14 @@ The configuration for the Docker containers is located in the `docker` folder in
 The development container configuration is laid out in the [`Dockerfile`](docker/Dockerfile) and does the following:
 
 - Use [Ubuntu 24.04 (Noble Numbat)](https://hub.docker.com/_/ubuntu) as a base image.
-- Add [FlameGraph](https://github.com/brendangregg/FlameGraph) and the required [GeoIP databases](https://github.com/maxmind/MaxMind-DB/tree/main/test-data).
+- Add [FlameGraph](https://github.com/brendangregg/FlameGraph) and demo [GeoIP databases](https://github.com/maxmind/MaxMind-DB/tree/main/test-data).
 - Install all required and useful Debian packages to develop and run Odoo.
 - Set up an `odoo` user with `sudo` rights to use in the container.
 - Install [`wkhtmltox`](https://github.com/wkhtmltopdf/packaging/releases) using the right version and architecture.
 - Install all required `node` modules.
 - Set up `zsh` as default shell with [Oh My Zsh!](https://ohmyz.sh/) and the [Spaceship](https://spaceship-prompt.sh/) theme for the `odoo` user.
 - Install all `pip` packages according to the Odoo version specified using the environment variable `ODOO_DEP_BRANCH`.
+- Set up useful aliases for running and debugging Odoo.
 
 
 ## [`o-multiverse`](o-multiverse) <sup>(Bash)</sup>
@@ -90,6 +124,9 @@ $ o-multiverse
 > [!NOTE]
 > The repositories checked out by default are: `odoo`, `enterprise`, `design-themes`, `documentation`, `internal`, `upgrade` and `upgrade-util`. If you want to exclude any of these (because you don't need them or don't have access to them), you can use the `-e` or `--exclude` option with a comma-separated list of repositories to exclude (from the list defined above).
 
+> [!TIP]
+> If you're using [Visual Studio Code](https://code.visualstudio.com/), you can provide the `--vscode` flag and the script will copy some [default config] including e.g. a debug launch configuration that works with the Docker container started via [`o-dev-start`](#o-dev-start-and-o-dev-stop-bash).
+
 **You can run the command as many times as you want. It will skip repositories and branches that already exist and only set up the ones that don't exist yet.**
 
 The `o-multiverse` command will do the following:
@@ -101,6 +138,8 @@ The `o-multiverse` command will do the following:
 3. Create a directory per branch in your multiverse directory, and a directory per multi-branch repository inside each branch directory. We use `git worktree add` to add a worktree for the correct branch for each repository.
 
 4. Create a symlink to each single-branch repository in each branch directory, since they all use the same `master` branch of these repositories.
+
+5. Copy the [`pyproject.toml`](multiverse-config/pyproject.toml) file into each branch folder to have the right Ruff configuration.
 
 After that is done, your directory structure should look a bit like this:
 
@@ -122,7 +161,8 @@ After that is done, your directory structure should look a bit like this:
 │   ├── documentation (17.0)
 │   ├── internal (symlink to ../internal)
 │   ├── upgrade (symlink to ../upgrade)
-│   └── upgrade-util (symlink to ../upgrade-util)
+│   ├── upgrade-util (symlink to ../upgrade-util)
+│   └── pyproject.toml
 ├── saas-17.1
 │   └── ...
 ├── saas-17.2

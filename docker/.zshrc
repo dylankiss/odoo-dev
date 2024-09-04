@@ -1,5 +1,5 @@
 # Setup the path
-export PATH=/code/odoo-dev:$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Path to your Oh My Zsh installation
 export ZSH=$HOME/.oh-my-zsh
@@ -19,7 +19,10 @@ zstyle ':omz:update' mode disabled
 
 # Disable marking untracked files as dirty.
 # This makes repository status check for large repositories much, much faster.
-DISABLE_UNTRACKED_FILES_DIRTY="true"
+DISABLE_UNTRACKED_FILES_DIRTY=true
+
+# Don't show the git status to speed things up.
+SPACESHIP_GIT_STATUS_SHOW=false
 
 # Plugins to load
 plugins=(
