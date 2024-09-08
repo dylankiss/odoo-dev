@@ -293,10 +293,27 @@ for branch in "${branches[@]}"; do
   # Copy Ruff config
   cp "$script_dir/multiverse-config/pyproject.toml" .
 
+  # Copy extra Python dependencies
+  cp "$script_dir/multiverse-config/requirements.txt" .
+
   # Copy VSCode config
   if $vscode; then
     cp -r "$script_dir/multiverse-config/.vscode" .
   fi
+
+  # Setup Python environment and install dependencies
+  msg "${DEFAULT}Setting up Python environment for branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  if [ -d "odoo" ]; then
+    pip install -r odoo/requirements.txt
+  fi
+  if [ -d "documentation" ]; then
+    pip install -r documentation/requirements.txt
+  fi
+
+  # TODO: Set up Javascript tooling
 
   popd > /dev/null
 done

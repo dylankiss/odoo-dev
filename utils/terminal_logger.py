@@ -18,7 +18,7 @@ class TerminalLogger:
 
     NOFORMAT = "\033[0m"
     B, B_END = "\033[1m", "\033[22m"
-    I, I_END = "\033[3m", "\033[23m"
+    I, I_END = "\033[3m", "\033[23m"  # noqa: E741
     U, U_END = "\033[4m", "\033[24m"
     BLACK,   BLACK_BG,   BR_BLACK,   BR_BLACK_BG   = "\033[30m", "\033[40m", "\033[90m", "\033[100m"
     RED,     RED_BG,     BR_RED,     BR_RED_BG     = "\033[31m", "\033[41m", "\033[91m", "\033[101m"

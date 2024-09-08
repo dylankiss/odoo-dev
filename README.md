@@ -210,12 +210,18 @@ The script will log every step to the console and provide the paths of the gener
 
 ## [`o-update-po`](o-update-po) <sup>(Python)</sup>
 
-This tool allows to update all `.po` files for one or more modules according to its `.pot` file using just one command.
+This tool allows to update the `.po` files for one or more modules according to its `.pot` file using just one command.
 
 The most common use would be to run this (from the workspace folder containing both your `odoo` and `enterprise` repositories):
 
 ```console
 $ o-update-po -m account,account_payment
+```
+
+You can specify which languages you want to update by using the `-l` argument with a comma-separated list (without spaces) of language codes. By default it updates them all.
+
+```console
+$ o-update-po -m account,account_payment -l fr,es,es_419
 ```
 
 > [!IMPORTANT]
@@ -225,6 +231,6 @@ $ o-update-po -m account,account_payment
 > $ brew install gettext  # macOS
 > ```
 
-The script will locate all `.po` files per module and use the `msgmerge` and `msgattrib` commands to update them according to the `.pot` file in the module's `i18n` directory. Make sure it is up to date by first running [`o-export-pot`](#o-export-pot-python).
+The script will locate the `.po` files per module and use the `msgmerge` and `msgattrib` commands to update them according to the `.pot` file in the module's `i18n` directory. Make sure it is up to date by first running [`o-export-pot`](#o-export-pot-python).
 
 The script will log every step to the console and provide the paths of the updated files to easily open any of them.

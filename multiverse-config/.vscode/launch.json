@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Remote Attach",
+            "name": "Debug Odoo: Attach",
             "type": "debugpy",
             "request": "attach",
             "connect": {
@@ -15,8 +15,49 @@
                     "remoteRoot": "."
                 }
             ],
+            "redirectOutput": false,
             "internalConsoleOptions": "openOnSessionStart",
             "justMyCode": false,
+        },
+        {
+            "name": "Debug Odoo: Community",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/odoo/odoo-bin",
+            "console": "integratedTerminal",
+            "autoReload": {
+                "enable": true
+            },
+            "justMyCode": false,
+            "args": [
+                "--addons-path",
+                "${workspaceFolder}/odoo/addons",
+                "--limit-time-cpu",
+                "99999999",
+                "--limit-time-real",
+                "99999999",
+                "${command:pickArgs}"
+            ]
+        },
+        {
+            "name": "Debug Odoo: Enterprise",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/odoo/odoo-bin",
+            "console": "integratedTerminal",
+            "autoReload": {
+                "enable": true
+            },
+            "justMyCode": false,
+            "args": [
+                "--addons-path",
+                "${workspaceFolder}/enterprise,${workspaceFolder}/odoo/addons",
+                "--limit-time-cpu",
+                "99999999",
+                "--limit-time-real",
+                "99999999",
+                "${command:pickArgs}"
+            ]
         }
     ]
 }
