@@ -48,7 +48,7 @@ Options:
   -b <branches>,          Specify which Odoo branches you want to add
   --branches <branches>   (comma-separated).
                           [default:
-                            15.0,16.0,17.0,saas-17.1,saas-17.2,saas-17.4,master
+                            15.0,16.0,17.0,saas-17.2,saas-17.4,master
                           ]
   -e <repos>,             Specify which repositories to exclude
   --exclude <repos>       (comma-separated). Repositories included by default:
@@ -114,7 +114,7 @@ die() {
 }
 
 parse_params() {
-  branches=("15.0" "16.0" "17.0" "saas-17.1" "saas-17.2" "saas-17.4" "master")
+  branches=("15.0" "16.0" "17.0" "saas-17.2" "saas-17.4" "master")
   exclude=("___DUMMY___")
   vscode=false
 
@@ -302,20 +302,69 @@ for branch in "${branches[@]}"; do
   fi
 
   # Setup Python environment and install dependencies
-  msg "${DEFAULT}Setting up Python environment for branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install -r requirements.txt
-  if [ -d "odoo" ]; then
-    pip install -r odoo/requirements.txt
+  if [ -d .venv ]; then
+    msg "${DEFAULT}Python environment for branch ${B}$branch${B_END} already exists. Updating dependencies ...${BR_BLACK}"
+  else
+    msg "${DEFAULT}Setting up Python environment for branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
+    python3 -m venv .venv
   fi
-  if [ -d "documentation" ]; then
-    pip install -r documentation/requirements.txt
+  msg "  ${BR_BLACK}${I}This could take a while ...${I_END}\n"
+  source .venv/bin/activate
+  if [ -d odoo ]; then
+    pip install -q -r odoo/requirements.txt
+  fi
+  if [ -d documentation ]; then
+    pip install -q -r documentation/requirements.txt
+  fi
+  pip install -q -r requirements.txt
+
+  # Set up Javascript tooling in odoo repository
+  if [ -d odoo ]; then
+    pushd odoo > /dev/null
+    js_tooling_dir="addons/web/tooling"
+    if [ -f .eslintrc.json ] || [ -f jsconfig.json ]; then
+      msg "${DEFAULT}Javascript tooling for repository ${B}odoo${B_END} in branch ${B}$branch${B_END} already exists. Updating rules and dependencies ...${BR_BLACK}"
+    else
+      msg "${DEFAULT}Setting up Javascript tooling for repository ${B}odoo${B_END} in branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
+    fi
+    cp "$js_tooling_dir/_eslintignore" .eslintignore
+    cp "$js_tooling_dir/_eslintrc.json" .eslintrc.json
+    if [ "$branch" = "15.0" ] || [ "$branch" = "16.0" ]; then
+      cp "$js_tooling_dir/_prettierignore" .prettierignore
+      cp "$js_tooling_dir/_prettierrc.json" .prettierrc.json
+    else
+      cp "$js_tooling_dir/_jsconfig.json" jsconfig.json
+    fi
+    cp "$js_tooling_dir/_package.json" package.json
+    npm install --silent
+    popd > /dev/null
   fi
 
-  # TODO: Set up Javascript tooling
+  # Set up Javascript tooling in enterprise repository
+  if [ -d enterprise ]; then
+    pushd enterprise > /dev/null
+    js_tooling_dir="../odoo/addons/web/tooling"
+    if [ -f .eslintrc.json ] || [ -f jsconfig.json ]; then
+      msg "${DEFAULT}Javascript tooling for repository ${B}enterprise${B_END} in branch ${B}$branch${B_END} already exists. Updating rules and dependencies ...${BR_BLACK}"
+    else
+      msg "${DEFAULT}Setting up Javascript tooling for repository ${B}enterprise${B_END} in branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
+    fi
+    cp "$js_tooling_dir/_eslintignore" .eslintignore
+    cp "$js_tooling_dir/_eslintrc.json" .eslintrc.json
+    if [ "$branch" = "15.0" ] || [ "$branch" = "16.0" ]; then
+      cp "$js_tooling_dir/_prettierignore" .prettierignore
+      cp "$js_tooling_dir/_prettierrc.json" .prettierrc.json
+    else
+      cp "$js_tooling_dir/_jsconfig.json" jsconfig.json
+      sed -i "s@addons/@../odoo/addons/@g" jsconfig.json
+    fi
+    cp "$js_tooling_dir/_package.json" package.json
+    cp ../odoo/package-lock.json package-lock.json
+    cp -a ../odoo/node_modules node_modules
+    popd > /dev/null
+  fi
 
   popd > /dev/null
 done
 
-msg "\n💪 ${B}Great!${B_END} You're now ready to work on multiple versions of Odoo."
+msg "${NOFORMAT}\n💪 ${B}Great!${B_END} You're now ready to work on multiple versions of Odoo."
