@@ -118,16 +118,25 @@ $ cd ~/code/odoo
 $ o-multiverse
 ```
 
+**You can run the command as many times as you want. It will skip already existing branches and repositories and only renew their configuration.**
+
 > [!NOTE]
-> The branches checked out by default are: `15.0`, `16.0`, `17.0`, `saas-17.1`, `saas-17.2`, `saas-17.4` and `master`. You can override this using the `-b` or `--branches` option with a comma-separated list of branches (e.g. `13.0,14.0`).
+> The branches checked out by default are: `15.0`, `16.0`, `17.0`, `saas-17.2`, `saas-17.4` and `master`. You can override this using the `-b` or `--branches` option with a comma-separated list of branches.
+> ```console
+> $ o-multiverse -b 15.0,16.0,17.0
+> ```
 
 > [!NOTE]
 > The repositories checked out by default are: `odoo`, `enterprise`, `design-themes`, `documentation`, `internal`, `upgrade` and `upgrade-util`. If you want to exclude any of these (because you don't need them or don't have access to them), you can use the `-e` or `--exclude` option with a comma-separated list of repositories to exclude (from the list defined above).
+> ```console
+> $ o-multiverse -e design-themes,documentation,internal
+> ```
 
 > [!TIP]
-> If you're using [Visual Studio Code](https://code.visualstudio.com/), you can provide the `--vscode` flag and the script will copy some [default config](multiverse-config/.vscode) including e.g. a debug launch configuration that works with the Docker container started via [`o-dev-start`](#o-dev-start-and-o-dev-stop-bash).
-
-**You can run the command as many times as you want. It will skip repositories and branches that already exist and only set up the ones that don't exist yet.**
+> If you're using [Visual Studio Code](https://code.visualstudio.com/), you can provide the `--vscode` flag and the script will copy some [default config](multiverse-config/.vscode), including recommended plugins, plugin configurations, debug configurations (including one that works with the Docker container started via [`o-dev-start`](#o-dev-start-and-o-dev-stop-bash)).
+> ```console
+> $ o-multiverse --vscode
+> ```
 
 The `o-multiverse` command will do the following:
 
@@ -140,6 +149,11 @@ The `o-multiverse` command will do the following:
 4. Create a symlink to each single-branch repository in each branch directory, since they all use the same `master` branch of these repositories.
 
 5. Copy the [`pyproject.toml`](multiverse-config/pyproject.toml) file into each branch folder to have the right Ruff configuration.
+
+6. Set up a Python virtual environment (`venv`) in the `.venv` folder and install all required dependencies.
+   (You can use this environment from the branch's directory using `source .venv/bin/activate`.)
+
+7. Set up Javascript tooling for the `odoo` and `enterprise` repositories using the `web` addon's `tooling` directory.
 
 After that is done, your directory structure should look a bit like this:
 
@@ -155,6 +169,7 @@ After that is done, your directory structure should look a bit like this:
 ├── 16.0
 │   └── ...
 ├── 17.0
+│   ├── .venv (Python virtual environment)
 │   ├── odoo (17.0)
 │   ├── enterprise (17.0)
 │   ├── design-themes (17.0)
@@ -162,7 +177,8 @@ After that is done, your directory structure should look a bit like this:
 │   ├── internal (symlink to ../internal)
 │   ├── upgrade (symlink to ../upgrade)
 │   ├── upgrade-util (symlink to ../upgrade-util)
-│   └── pyproject.toml
+│   ├── pyproject.toml
+│   └── requirements.txt
 ├── saas-17.1
 │   └── ...
 ├── saas-17.2
