@@ -55,7 +55,6 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             result = subprocess.run(
                 [
                     "msgmerge",
-                    "--no-wrap",
                     "--no-fuzzy-matching",
                     "-q",
                     po_file_path,
@@ -71,7 +70,6 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             result = subprocess.run(
                 [
                     "msgattrib",
-                    "--no-wrap",
                     "--no-fuzzy",
                     "--no-obsolete",
                     "-o",
