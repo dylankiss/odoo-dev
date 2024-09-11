@@ -186,7 +186,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Export Odoo translation files (.pot) to each module's i18n folder."
     )
-    parser.add_argument("-d", "--database", default="__epot__", help="The name of the database to use (default: __epot__)")
+    parser.add_argument("-d", "--database", default="__export_pot_db__", help="The name of the database to use (default: __export_pot_db__)")
     parser.add_argument("--db_host", default="localhost", help="The hostname of the database to use (default: localhost)")
     parser.add_argument("--db_port", default=5432, help="The port of the database to use (default: 5432)")
     parser.add_argument("--db_user", help="The user to log into the database")

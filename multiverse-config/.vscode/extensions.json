@@ -1,15 +1,16 @@
 {
     "recommendations": [
-        "dbaeumer.vscode-eslint",
-        "njpwerner.autodocstring",
-        "eamodio.gitlens",
-        "pkief.material-icon-theme",
-        "ms-python.python",
-        "ms-python.debugpy",
-        "kevinrose.vsc-python-indent",
         "charliermarsh.ruff",
-        "trinhanhngoc.vscode-odoo",
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens",
+        "kevinrose.vsc-python-indent",
+        "ms-python.debugpy",
+        "ms-python.python",
+        "njpwerner.autodocstring",
         "odoo.owl-vision",
-        "redhat.vscode-xml"
+        "pkief.material-icon-theme",
+        "redhat.vscode-xml",
+        "streetsidesoftware.code-spell-checker",
+        "trinhanhngoc.vscode-odoo",
     ]
 }

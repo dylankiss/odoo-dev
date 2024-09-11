@@ -7,32 +7,32 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch>] [-w <workspace>]
-       [-d <devtools-dir>] [--build] [--shell]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch>] [-w <workspace>] [-d <devtools-dir>] [--build] [--db]
 
-Start a Docker container for Odoo development.
+Start Docker containers for Odoo development.
 The first build might take a while, since the image is built from scratch.
 All tools in this repository will be available in the container as well.
 
 To exit the interactive shell session, just run the command "exit".
 
 Options:
-  -h, --help                Print this help and exit.
-  -v, --verbose             Print script debug info.
-  -b <branch>,              Specify which Odoo branch to use for installing
-  --branch <branch>         dependencies.
-                            [default: master]
-  -w <workspace>,           Specify the absolute path to the development
-  --workspace <workspace>   workspace to mount in the Docker container's /code
-                            directory.
-                            [default: ~/code/odoo]
-  -d <devtools>,            Specify the absolute path to your odoo-dev
-  --devtools <devtools>     development tools directory to mount in the Docker
-                            container's /home/odoo/bin directory.
-                            [default: this tool's directory]
-  --build                   Force a rebuild of the Docker image.
-  --shell                   Only start a new shell session to the running
-                            container.
+  -h, --help            Print this help and exit.
+  -v, --verbose         Print script debug info.
+  -b <branch>, --branch <branch>
+                        Specify which Odoo branch to use for installing
+                        dependencies. (default: master)
+  -w <workspace>, --workspace <workspace>
+                        Specify the absolute path to the development workspace
+                        to mount in the Docker container's /code directory.
+                        (default: ~/code/odoo)
+  -d <devtools>, --devtools <devtools>
+                        Specify the absolute path to your odoo-dev development
+                        tools directory to mount in the Docker container's
+                        /home/odoo/bin directory.
+                        (default: this tool's directory)
+  --build               Force a rebuild of the Docker image.
+  --db                  Only start the PostgreSQL server (if you want to run
+                        your Odoo server on your local machine).
 EOF
   exit
 }
@@ -90,8 +90,8 @@ parse_params() {
   ODOO_DEP_BRANCH=master
   ODOO_WORKSPACE_DIR=~/code/odoo
   ODOO_DEVTOOLS_DIR="$script_dir"
-  shell=false
   build=false
+  db=false
 
   while :; do
     case "${1-}" in
@@ -111,7 +111,7 @@ parse_params() {
         shift
         ;;
     --build) build=true ;;
-    --shell) shell=true ;;
+    --db) db=true ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -123,7 +123,6 @@ parse_params() {
 
 parse_params "$@"
 setup_formatting
-
 
 docker="sudo docker"
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -137,7 +136,10 @@ export ODOO_DEP_BRANCH
 export ODOO_DEVTOOLS_DIR
 export ODOO_WORKSPACE_DIR
 
-if ! $shell; then
+if $db; then
+  msg "🗄️ ${WHITE}${B}Starting the PostgreSQL server${NOFORMAT}"
+  $docker compose -f "$script_dir/docker/compose.yaml" up -d db
+else
   if $build; then
     msg "🏗️ ${WHITE}${B}Force rebuilding the Docker image${NOFORMAT}"
     msg "  ${BR_BLACK}${I}This could take a while ...${NOFORMAT}\n"
@@ -148,7 +150,7 @@ if ! $shell; then
   msg "\n📦 ${WHITE}${B}Starting the Docker containers${NOFORMAT}\n"
   msg "  ${BR_BLACK}${I}If it's the first time, building could take a while ...${NOFORMAT}\n"
   $docker compose -f "$script_dir/docker/compose.yaml" up -d
-fi
 
-msg "\n💻 ${WHITE}${B}Starting an interactive shell to the Docker container${NOFORMAT}\n"
-$docker compose -f "$script_dir/docker/compose.yaml" exec odoo zsh
+  msg "\n💻 ${WHITE}${B}Starting an interactive shell to the Docker container${NOFORMAT}\n"
+  $docker compose -f "$script_dir/docker/compose.yaml" exec odoo zsh
+fi

@@ -11,7 +11,11 @@
     "editor.quickSuggestions": {
         "strings": "on"
     },
+    "editor.rulers": [120],
     "eslint.format.enable": true,
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
     "gitlens.autolinks": [
         {
             "prefix": "task-",
@@ -159,6 +163,10 @@
         "${workspaceFolder}/design-themes",
     ],
     "python.languageServer": "None",
+    "xml.codeLens.enabled": true,
+    "xml.format.closingBracketNewLine": true,
     "xml.format.enforceQuoteStyle": "preferred",
-    "xml.format.maxLineWidth": 0
+    "xml.format.maxLineWidth": 0,
+    "xml.server.preferBinary": true,
+    "xml.validation.resolveExternalEntities": true,
 }

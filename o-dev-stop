@@ -9,11 +9,11 @@ usage() {
   cat <<EOF
 Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v]
 
-Stop the Docker container for Odoo development and clean up.
+Stop the Docker containers for Odoo development and clean up.
 
 Options:
-  -h, --help      Print this help and exit.
-  -v, --verbose   Print script debug info.
+  -h, --help            Print this help and exit.
+  -v, --verbose         Print script debug info.
 EOF
   exit
 }
@@ -85,7 +85,6 @@ parse_params() {
 parse_params "$@"
 setup_formatting
 
-
 docker="sudo docker"
 if [[ "$OSTYPE" == "darwin"* ]]; then
   # No need to sudo when on macOS
@@ -98,5 +97,5 @@ export ODOO_DEP_BRANCH=master
 export ODOO_DEVTOOLS_DIR=~/code/odoo
 export ODOO_WORKSPACE_DIR="$script_dir"
 
-msg "🪣 ${WHITE}${B}Stopping the Docker containers and cleaning up${NOFORMAT}\n"
+msg "🧹 ${WHITE}${B}Stopping the Docker containers and cleaning up${NOFORMAT}\n"
 $docker compose -f "$script_dir/docker/compose.yaml" down

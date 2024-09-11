@@ -7,14 +7,12 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branches>] [-e <repos>]
-       [--vscode]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branches>] [-e <repos>] [--vscode] [--reset-config]
 
 Setup the repositories for an Odoo Multiverse environment.
 Run this command from the directory you want to contain all Odoo versions.
 
-This will clone all necessary repositories and create folders per branch using
-git worktrees. The final structure would look like this:
+This will clone all necessary repositories and create folders per branch using git worktrees. The final structure would look like this:
 
 <multiverse-folder>
 ├── .worktree-source
@@ -43,23 +41,25 @@ git worktrees. The final structure would look like this:
 
 
 Options:
-  -h, --help              Print this help and exit.
-  -v, --verbose           Print script debug info.
-  -b <branches>,          Specify which Odoo branches you want to add
-  --branches <branches>   (comma-separated).
-                          [default:
-                            15.0,16.0,17.0,saas-17.2,saas-17.4,master
-                          ]
-  -e <repos>,             Specify which repositories to exclude
-  --exclude <repos>       (comma-separated). Repositories included by default:
-                            - odoo
-                            - enterprise
-                            - design-themes
-                            - documentation
-                            - internal
-                            - upgrade
-                            - upgrade-util
-  --vscode                Copy tools and debug configuration for VS Code
+  -h, --help            Print this help and exit.
+  -v, --verbose         Print script debug info.
+  -b <branches>, --branches <branches>
+                        Specify which Odoo branches you want to add
+                        (comma-separated).
+                        (default: 15.0,16.0,17.0,saas-17.2,saas-17.4,master)
+  -e <repos>, --exclude <repos>
+                        Specify which repositories to exclude
+                        (comma-separated). Repositories included by default:
+                          - odoo
+                          - enterprise
+                          - design-themes
+                          - documentation
+                          - internal
+                          - upgrade
+                          - upgrade-util
+  --vscode              Copy tools and debug configuration for VS Code.
+  --reset-config        Reset the existing configuration files to use the most
+                        recent one.
 EOF
   exit
 }
@@ -117,6 +117,7 @@ parse_params() {
   branches=("15.0" "16.0" "17.0" "saas-17.2" "saas-17.4" "master")
   exclude=("___DUMMY___")
   vscode=false
+  reset_config=false
 
   while :; do
     case "${1-}" in
@@ -132,6 +133,7 @@ parse_params() {
         shift
         ;;
     --vscode) vscode=true ;;
+    --reset-config) reset_config=true ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -290,19 +292,31 @@ for branch in "${branches[@]}"; do
     fi
   done
 
-  # Copy Ruff config
-  cp "$script_dir/multiverse-config/pyproject.toml" .
-
-  # Copy extra Python dependencies
-  cp "$script_dir/multiverse-config/requirements.txt" .
-
-  # Copy VSCode config
-  if $vscode; then
-    cp -r "$script_dir/multiverse-config/.vscode" .
+  if $reset_config; then
+    msg "Overwriting existing configuration files ..."
   fi
 
-  # Setup Python environment and install dependencies
-  if [ -d .venv ]; then
+  if [ ! -f pyproject.toml ] || $reset_config ; then
+    # Copy Ruff config
+    cp -f "$script_dir/multiverse-config/pyproject.toml" .
+  fi
+
+  if [ ! -f requirements.txt ] || $reset_config ; then
+    # Copy extra Python dependencies
+    cp -f "$script_dir/multiverse-config/requirements.txt" .
+  fi
+
+  if $vscode && { [ ! -d .vscode ] || $reset_config; }; then
+    # Copy VSCode config
+    cp -fr "$script_dir/multiverse-config/.vscode" .
+  fi
+
+  # Set up Python environment and install dependencies
+  if $reset_config && [ -d .venv ]; then
+    msg "${DEFAULT}Resetting Python environment for branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
+    rm -rf .venv
+    python3 -m venv .venv
+  elif [ -d .venv ]; then
     msg "${DEFAULT}Python environment for branch ${B}$branch${B_END} already exists. Updating dependencies ...${BR_BLACK}"
   else
     msg "${DEFAULT}Setting up Python environment for branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
@@ -327,15 +341,15 @@ for branch in "${branches[@]}"; do
     else
       msg "${DEFAULT}Setting up Javascript tooling for repository ${B}odoo${B_END} in branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
     fi
-    cp "$js_tooling_dir/_eslintignore" .eslintignore
-    cp "$js_tooling_dir/_eslintrc.json" .eslintrc.json
+    cp -f "$js_tooling_dir/_eslintignore" .eslintignore
+    cp -f "$js_tooling_dir/_eslintrc.json" .eslintrc.json
     if [ "$branch" = "15.0" ] || [ "$branch" = "16.0" ]; then
-      cp "$js_tooling_dir/_prettierignore" .prettierignore
-      cp "$js_tooling_dir/_prettierrc.json" .prettierrc.json
+      cp -f "$js_tooling_dir/_prettierignore" .prettierignore
+      cp -f "$js_tooling_dir/_prettierrc.json" .prettierrc.json
     else
-      cp "$js_tooling_dir/_jsconfig.json" jsconfig.json
+      cp -f "$js_tooling_dir/_jsconfig.json" jsconfig.json
     fi
-    cp "$js_tooling_dir/_package.json" package.json
+    cp -f "$js_tooling_dir/_package.json" package.json
     npm install --silent
     popd > /dev/null
   fi
@@ -349,18 +363,18 @@ for branch in "${branches[@]}"; do
     else
       msg "${DEFAULT}Setting up Javascript tooling for repository ${B}enterprise${B_END} in branch ${B}$branch${B_END} and installing dependencies ...${BR_BLACK}"
     fi
-    cp "$js_tooling_dir/_eslintignore" .eslintignore
-    cp "$js_tooling_dir/_eslintrc.json" .eslintrc.json
+    cp -f "$js_tooling_dir/_eslintignore" .eslintignore
+    cp -f "$js_tooling_dir/_eslintrc.json" .eslintrc.json
     if [ "$branch" = "15.0" ] || [ "$branch" = "16.0" ]; then
-      cp "$js_tooling_dir/_prettierignore" .prettierignore
-      cp "$js_tooling_dir/_prettierrc.json" .prettierrc.json
+      cp -f "$js_tooling_dir/_prettierignore" .prettierignore
+      cp -f "$js_tooling_dir/_prettierrc.json" .prettierrc.json
     else
-      cp "$js_tooling_dir/_jsconfig.json" jsconfig.json
+      cp -f "$js_tooling_dir/_jsconfig.json" jsconfig.json
       sed -i "s@addons/@../odoo/addons/@g" jsconfig.json
     fi
-    cp "$js_tooling_dir/_package.json" package.json
-    cp ../odoo/package-lock.json package-lock.json
-    cp -a ../odoo/node_modules node_modules
+    cp -f "$js_tooling_dir/_package.json" package.json
+    cp -f ../odoo/package-lock.json package-lock.json
+    cp -af ../odoo/node_modules node_modules
     popd > /dev/null
   fi
 
