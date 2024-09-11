@@ -36,19 +36,20 @@ You can easily start a development container like this:
 $ o-dev-start -b master -w ~/code/odoo
 ```
 
-This will build a Docker image (if changed from the last config) using the `master` branch dependencies, start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
+This will build a Docker image (if no previous one exists) using the `master` branch dependencies, start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
 
 > [!TIP]
-> If you want to run another shell into the container, you can run the command with the `--shell` option: `o-dev-start --shell` in another terminal.
+> If you haven't already, it might be convenient to install a [Nerd Font](https://www.nerdfonts.com/font-downloads) and set it as the default in your terminal, so the icons used in the container will be displayed correctly.
 
 > [!TIP]
-> If you want to force a rebuild of the image, you can run the command with the `--build` option: `o-dev-start --build ...`.
+> If you want to force a full rebuild of the image, you can run the command with the `--build` option: `o-dev-start --build ...`.
+> If you want to reuse existing cached layers, you can use the `--build-with-cache` option.
 
 The container exposes ports `8069`, `8071`, `8072` and `8073`, so you could run up to 4 Odoo instances simultaneously (each on one of the ports) and access them from your host machine at `http://localhost:<port>`.
 
 The command will also start a separate PostgreSQL container that you can access from your host machine at `localhost:5432` with `odoo` as username and password. Inside your other Docker container, the hostname of the PostgreSQL server is `db`.
 
-The container contains some helpful aliases that you can use to run and debug Odoo from your workspace (*either `/code` or `/code/<branch>` if you're using the multiverse setup*). They contain the right configuration to connect to the PostgreSQL database and set very high time limits by default (useful for debugging). You can check them in [`docker/aliases.zsh`](docker/aliases.zsh).
+The container contains some helpful aliases that you can use to run and debug Odoo from your workspace (*either `/code` or `/code/<branch>` if you're using the multiverse setup*). They contain the right configuration to connect to the PostgreSQL database and set very high time limits by default (useful for debugging). You can check them in [`docker/.bash_aliases`](docker/.bash_aliases).
 
 **Running Odoo** (from within the workspace folder)
 - `o-bin` can be used instead of `odoo/odoo-bin` with the same arguments.

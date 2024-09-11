@@ -46,8 +46,7 @@ RUN set -x; \
         vim \
         xfonts-75dpi \
         zip \
-        zlib1g-dev \
-        zsh && \
+        zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Remove the default Ubuntu user, add an Odoo user and give him sudo rights
@@ -126,19 +125,10 @@ RUN apt-get update && \
     rm /tmp/control.txt
 
 
-# Configure zsh and Oh My Zsh!
-COPY --chown=odoo .zshrc /home/odoo/.zshrc
-RUN ZSH="/home/odoo/.oh-my-zsh" && \
-    ZSH_CUSTOM="$ZSH/custom" && \
-    umask g-w,o-w && \
-    mkdir -p /home/odoo/.oh-my-zsh && \
-    git clone --depth=1 "https://github.com/ohmyzsh/ohmyzsh.git" "$ZSH" 2>&1 && \
-    git clone --depth=1 "https://github.com/spaceship-prompt/spaceship-prompt.git" "$ZSH_CUSTOM/themes/spaceship-prompt" 2>&1 && \
-    git clone --depth=1 "https://github.com/zsh-users/zsh-syntax-highlighting.git" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" 2>&1 && \
-    git clone --depth=1 "https://github.com/zsh-users/zsh-autosuggestions" "$ZSH_CUSTOM/plugins/zsh-autosuggestions" 2>&1 && \
-    ln -s "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme" && \
-    chown -R odoo "$ZSH" && \
-    chsh --shell /bin/zsh odoo
+# Configure the Bash shell using Starship
+RUN --mount=type=bind,source=starship.bashrc,target=/tmp/starship.bashrc \
+    curl -sS https://starship.rs/install.sh | sh -s -- --yes && \
+    cat /tmp/starship.bashrc >> /home/odoo/.bashrc
 
 # Switch to Odoo user
 USER odoo
@@ -171,4 +161,4 @@ WORKDIR /code
 # Expose useful ports
 EXPOSE 5678 8069 8071 8072 8073
 
-CMD [ "zsh" ]
+CMD [ "bash" ]

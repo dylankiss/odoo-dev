@@ -1,3 +1,4 @@
 phonenumbers
 pydevd-odoo
+pylint
 watchdog

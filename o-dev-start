@@ -7,7 +7,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch>] [-w <workspace>] [-d <devtools-dir>] [--build] [--db]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch>] [-w <workspace>] [-d <devtools-dir>] [--build] [--build-with-cache] [--db]
 
 Start Docker containers for Odoo development.
 The first build might take a while, since the image is built from scratch.
@@ -30,7 +30,9 @@ Options:
                         tools directory to mount in the Docker container's
                         /home/odoo/bin directory.
                         (default: this tool's directory)
-  --build               Force a rebuild of the Docker image.
+  --build               Force a full rebuild of the Docker image.
+  --build-with-cache    Force a rebuild of the Docker image, but using the
+                        existing cache.
   --db                  Only start the PostgreSQL server (if you want to run
                         your Odoo server on your local machine).
 EOF
@@ -91,6 +93,7 @@ parse_params() {
   ODOO_WORKSPACE_DIR=~/code/odoo
   ODOO_DEVTOOLS_DIR="$script_dir"
   build=false
+  build_with_cache=false
   db=false
 
   while :; do
@@ -111,6 +114,7 @@ parse_params() {
         shift
         ;;
     --build) build=true ;;
+    --build-with-cache) build_with_cache=true ;;
     --db) db=true ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
@@ -140,11 +144,15 @@ if $db; then
   msg "🗄️ ${WHITE}${B}Starting the PostgreSQL server${NOFORMAT}"
   $docker compose -f "$script_dir/docker/compose.yaml" up -d db
 else
-  if $build; then
+  if $build || $build_with_cache; then
     msg "🏗️ ${WHITE}${B}Force rebuilding the Docker image${NOFORMAT}"
     msg "  ${BR_BLACK}${I}This could take a while ...${NOFORMAT}\n"
     $docker compose -f "$script_dir/docker/compose.yaml" down
-    $docker compose -f "$script_dir/docker/compose.yaml" build --no-cache odoo
+    if $build_with_cache; then
+      $docker compose -f "$script_dir/docker/compose.yaml" build odoo
+    else
+      $docker compose -f "$script_dir/docker/compose.yaml" build --no-cache odoo
+    fi
   fi
 
   msg "\n📦 ${WHITE}${B}Starting the Docker containers${NOFORMAT}\n"
@@ -152,5 +160,5 @@ else
   $docker compose -f "$script_dir/docker/compose.yaml" up -d
 
   msg "\n💻 ${WHITE}${B}Starting an interactive shell to the Docker container${NOFORMAT}\n"
-  $docker compose -f "$script_dir/docker/compose.yaml" exec odoo zsh
+  $docker compose -f "$script_dir/docker/compose.yaml" exec odoo bash
 fi

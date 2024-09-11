@@ -11,7 +11,8 @@ services:
     volumes:
       - ${ODOO_WORKSPACE_DIR}:/code
       - ${ODOO_DEVTOOLS_DIR}:/home/odoo/bin
-      - ./aliases.zsh:/home/odoo/.oh-my-zsh/custom/aliases.zsh
+      - ./.bash_aliases:/home/odoo/.bash_aliases
+      - ./starship.toml:/home/odoo/.config/starship.toml
     ports:
       - "5678:5678"
       - "8069:8069"
