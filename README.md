@@ -118,7 +118,7 @@ $ cd ~/code/odoo
 $ o-multiverse
 ```
 
-**You can run the command as many times as you want. It will skip already existing branches and repositories and only renew their configuration.**
+**You can run the command as many times as you want. It will skip already existing branches and repositories and only renew their configuration (when passed the `--reset-config` argument).**
 
 > [!NOTE]
 > The branches checked out by default are: `15.0`, `16.0`, `17.0`, `saas-17.2`, `saas-17.4` and `master`. You can override this using the `-b` or `--branches` option with a comma-separated list of branches.
