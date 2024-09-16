@@ -4,8 +4,12 @@ services:
   odoo:
     build:
       context: .
-      args:
-        - ODOO_DEP_BRANCH=${ODOO_DEP_BRANCH}
+      dockerfile: ./${UBUNTU_VERSION}.Dockerfile
+      platforms:
+        - linux/amd64
+    image: localhost/odoo:${UBUNTU_VERSION}
+    container_name: odoo-${UBUNTU_VERSION}
+    platform: linux/amd64
     depends_on:
       - db
     volumes:

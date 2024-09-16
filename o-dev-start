@@ -7,7 +7,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-b <branch>] [-w <workspace>] [-d <devtools-dir>] [--build] [--build-with-cache] [--db]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-w <workspace>] [-d <devtools-dir>] [--build] [--build-with-cache] [--db]
 
 Start Docker containers for Odoo development.
 The first build might take a while, since the image is built from scratch.
@@ -18,9 +18,6 @@ To exit the interactive shell session, just run the command "exit".
 Options:
   -h, --help            Print this help and exit.
   -v, --verbose         Print script debug info.
-  -b <branch>, --branch <branch>
-                        Specify which Odoo branch to use for installing
-                        dependencies. (default: master)
   -w <workspace>, --workspace <workspace>
                         Specify the absolute path to the development workspace
                         to mount in the Docker container's /code directory.
@@ -89,7 +86,6 @@ die() {
 }
 
 parse_params() {
-  ODOO_DEP_BRANCH=master
   ODOO_WORKSPACE_DIR=~/code/odoo
   ODOO_DEVTOOLS_DIR="$script_dir"
   build=false
@@ -136,9 +132,9 @@ fi
 
 msg "🟣 ${MAGENTA}${B}Odoo Development Container${NOFORMAT}\n"
 
-export ODOO_DEP_BRANCH
 export ODOO_DEVTOOLS_DIR
 export ODOO_WORKSPACE_DIR
+export UBUNTU_VERSION=noble
 
 if $db; then
   msg "🗄️ ${WHITE}${B}Starting the PostgreSQL server${NOFORMAT}"
