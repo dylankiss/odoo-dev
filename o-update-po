@@ -13,7 +13,7 @@ from utils.terminal_logger import TerminalLogger, log
 
 
 def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, tl):
-    log(f"💬 {tl.WHITE}{tl.B}Export Terms{tl.NOFORMAT}\n")
+    log(f"💬 {tl.WHITE}{tl.B}Update Translations{tl.NOFORMAT}\n")
 
     log(f"Updating translations for modules {tl.B}{f'{tl.B_END}, {tl.B}'.join(modules)}{tl.B_END} ...")
     log("│")
@@ -64,7 +64,7 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             )
             if result.returncode:
                 failure = True
-                log(f"{tree_prepend} ❌ {tl.RED}Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgmerge{tl.I_END}!{tl.NOFORMAT}")
+                log(f"{tree_prepend} {tl.RED}{tl.B}!{tl.B_END} Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgmerge{tl.I_END}!{tl.NOFORMAT}")
                 continue
 
             result = subprocess.run(
@@ -80,7 +80,7 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
 
             if result.returncode:
                 failure = True
-                log(f"{tree_prepend} ❌ {tl.RED}Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgattrib{tl.I_END}!{tl.NOFORMAT}")
+                log(f"{tree_prepend} {tl.RED}{tl.B}!{tl.B_END} Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgattrib{tl.I_END}!{tl.NOFORMAT}")
             else:
                 success = True
                 log(f"{tree_prepend} Updated {tl.U}{po_file_path}{tl.U_END} ✔️")
@@ -89,9 +89,9 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             log("│")
 
     if not success and failure:
-        log(f"\n{tl.RED}All translation files failed to update ...{tl.NOFORMAT} ❌")
+        log(f"\n{tl.RED}{tl.B}!{tl.B_END} All translation files failed to update ...{tl.NOFORMAT}")
     elif success and failure:
-        log(f"\n{tl.YELLOW}Some translation files were updated correctly, while others failed ...{tl.NOFORMAT} ⚠️")
+        log(f"\n{tl.YELLOW}{tl.B}!{tl.B_END} Some translation files were updated correctly, while others failed ...{tl.NOFORMAT}")
     elif success and not failure:
         log(f"\n{tl.GREEN}All translation files were updated correctly!{tl.NOFORMAT} 💪")
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     elif args.modules:
         modules = set(args.modules.split(","))
     else:
-        log(f"❗ {tl.RED}No modules provided to update! Terminating the process ...{tl.NOFORMAT}")
+        log(f"{tl.RED}{tl.B}!{tl.B_END} No modules provided to update! Terminating the process ...{tl.NOFORMAT}")
         sys.exit(1)
 
     modules_per_path = [

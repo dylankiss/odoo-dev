@@ -164,7 +164,7 @@ def export_terms(modules, url, db, username, password, addons_path, base_i18n_pa
             f.write(content)
 
         tree_prepend = "    └──" if last_module else "│   └──"
-        log(f"{tree_prepend} 💾 {tl.U}{filepath}{tl.U_END}")
+        log(f"{tree_prepend} Saved at {tl.U}{filepath}{tl.U_END}")
         if not last_module:
             log("│")
 
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     elif args.modules:
         modules = set(args.modules.split(","))
     else:
-        log(f"❗ {tl.RED}No modules provided to export! Terminating the process ...{tl.NOFORMAT}")
+        log(f"{tl.RED}{tl.B}!{tl.B_END} No modules provided to export! Terminating the process ...{tl.NOFORMAT}")
         sys.exit(1)
 
     server_type = "Enterprise" if enterprise_modules & modules else "Community"
@@ -295,11 +295,11 @@ if __name__ == "__main__":
                     log(f"Creating new database {tl.B}{args.database}{tl.B_END} ...")
 
                 if "odoo.modules.registry: Failed to load registry" in text:
-                    log(f"❗ {tl.RED}An error occurred during loading! Terminating the process ...{tl.NOFORMAT}")
+                    log(f"{tl.RED}{tl.B}!{tl.B_END} An error occurred during loading! Terminating the process ...{tl.NOFORMAT}")
                     break
 
                 if "odoo.sql_db: Connection to the database failed" in text:
-                    log(f"❗ {tl.RED}Could not connect to the database! Terminating the process ...{tl.NOFORMAT}")
+                    log(f"{tl.RED}{tl.B}!{tl.B_END} Could not connect to the database! Terminating the process ...{tl.NOFORMAT}")
                     break
 
                 if "odoo.modules.loading: Modules loaded." in text:
