@@ -28,18 +28,15 @@ Using these tools you can automatically start and stop a fully configured Docker
 > [!IMPORTANT]
 > These tools require [Docker Desktop](https://www.docker.com/products/docker-desktop/) to be installed on your system.
 
-The Docker container is carefully configured to resemble the latest [Runbot](https://runbot.odoo.com/) container and thus tries to eliminate discrepancies between your local system and the CI server.
+The Docker container is carefully configured to resemble Odoo's SaaS and SH servers and thus tries to eliminate discrepancies between your local system and the production server.
 
 You can easily start a development container like this:
 
 ```console
-$ o-dev-start -b master -w ~/code/odoo
+$ o-dev-start -w ~/code/odoo
 ```
 
-This will build a Docker image (if no previous one exists) using the `master` branch dependencies, start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
-
-> [!TIP]
-> If you haven't already, it might be convenient to install a [Nerd Font](https://www.nerdfonts.com/font-downloads) and set it as the default in your terminal, so the icons used in the container will be displayed correctly.
+This will build a Docker image (if no previous one exists), start a container and mount the `~/code/odoo` directory inside your container at `/code` to allow live code updates while developing. It will then open an interactive shell to the container to allow you to run any `odoo-bin` command.
 
 > [!TIP]
 > If you want to force a full rebuild of the image, you can run the command with the `--build` option: `o-dev-start --build ...`.
@@ -95,14 +92,10 @@ The configuration for the Docker containers is located in the `docker` folder in
 The development container configuration is laid out in the [`Dockerfile`](docker/Dockerfile) and does the following:
 
 - Use [Ubuntu 24.04 (Noble Numbat)](https://hub.docker.com/_/ubuntu) as a base image.
-- Add [FlameGraph](https://github.com/brendangregg/FlameGraph) and demo [GeoIP databases](https://github.com/maxmind/MaxMind-DB/tree/main/test-data).
 - Install all required and useful Debian packages to develop and run Odoo.
-- Set up an `odoo` user with `sudo` rights to use in the container.
-- Install [`wkhtmltox`](https://github.com/wkhtmltopdf/packaging/releases) using the right version and architecture.
 - Install all required `node` modules.
-- Set up `zsh` as default shell with [Oh My Zsh!](https://ohmyz.sh/) and the [Spaceship](https://spaceship-prompt.sh/) theme for the `odoo` user.
-- Install all `pip` packages according to the Odoo version specified using the environment variable `ODOO_DEP_BRANCH`.
-- Set up useful aliases for running and debugging Odoo.
+- Set up an `odoo` user and his environment to use in the container.
+- Install all `pip` packages not available as Debian packages.
 
 
 ## [`o-multiverse`](o-multiverse) <sup>(Bash)</sup>
