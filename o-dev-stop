@@ -95,7 +95,6 @@ msg "🟣 ${MAGENTA}${B}Odoo Development Container${NOFORMAT}\n"
 
 export ODOO_DEVTOOLS_DIR=~/code/odoo
 export ODOO_WORKSPACE_DIR="$script_dir"
-export UBUNTU_VERSION=noble
 
 msg "🧹 ${WHITE}${B}Stopping the Docker containers and cleaning up${NOFORMAT}\n"
 $docker compose -f "$script_dir/docker/compose.yaml" down

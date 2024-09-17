@@ -1,5 +1,5 @@
-# Ubuntu 24.04 LTS (Noble Numbat)
-FROM ubuntu:noble
+# Ubuntu 22.04 LTS (Jammy Jellyfish)
+FROM ubuntu:jammy
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -22,7 +22,7 @@ RUN apt-get update -y && \
     # Install wget to fetch custom Debian packages
     apt-get install -y --no-install-recommends wget && \
     # Fetch Google Chrome (for web tour tests)
-    wget -q --show-progres --progress=bar:force:noscroll -O chrome.deb \
+    wget -q --show-progress --progress=bar:force:noscroll -O chrome.deb \
     https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_123.0.6312.58-1_amd64.deb && \
     # Fetch the right version of wkhtmltox
     wget -q --show-progress --progress=bar:force:noscroll -O wkhtmltox.deb \
@@ -81,7 +81,6 @@ RUN apt-get update -y && \
         python3-jwt \
         python3-libsass \
         python3-lxml \
-        python3-lxml-html-clean \
         python3-mako \
         python3-markdown \
         python3-matplotlib \
@@ -161,14 +160,13 @@ RUN npm install -g \
 
 # Remove the default Ubuntu user, add an Odoo user and set up his environment
 RUN --mount=type=bind,source=starship.bashrc,target=/tmp/starship.bashrc \
-    userdel ubuntu && \
     groupadd -g 1000 odoo && \
     useradd --create-home -u 1000 -g odoo -G audio,video odoo && \
     passwd -d odoo && \
     echo odoo ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/odoo && \
     chmod 0440 /etc/sudoers.d/odoo && \
-    # Create the working directory and make it owned by the Odoo user
-    mkdir /code && \
+    # Create the working directory and filestore directory and make it owned by the Odoo user
+    mkdir -p /code && \
     chown odoo /code && \
     # Configure the Bash shell using Starship
     curl -sS https://starship.rs/install.sh | sh -s -- --yes && \
@@ -178,7 +176,7 @@ RUN --mount=type=bind,source=starship.bashrc,target=/tmp/starship.bashrc \
 USER odoo
 
 # Install Python dependencies via pip for packages not available via apt
-RUN pip install --no-cache-dir --break-system-packages \
+RUN pip install --no-cache-dir \
         # Install Odoo dependencies
         ebaysdk \
         firebase-admin==2.17.0 \

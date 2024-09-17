@@ -4,16 +4,17 @@ services:
   odoo:
     build:
       context: .
-      dockerfile: ./${UBUNTU_VERSION}.Dockerfile
+      dockerfile: ./${UBUNTU_VERSION:-jammy}.Dockerfile
       platforms:
         - linux/amd64
-    image: localhost/odoo:${UBUNTU_VERSION}
-    container_name: odoo-${UBUNTU_VERSION}
+    container_name: odoo-${UBUNTU_VERSION:-jammy}
+    hostname: odoo-${UBUNTU_VERSION:-jammy}
     platform: linux/amd64
     depends_on:
       - db
     volumes:
       - ${ODOO_WORKSPACE_DIR}:/code
+      - odoo-filestore:/home/odoo/.local/share/Odoo
       - ${ODOO_DEVTOOLS_DIR}:/home/odoo/bin
       - ./.bash_aliases:/home/odoo/.bash_aliases
       - ./starship.toml:/home/odoo/.config/starship.toml
@@ -41,4 +42,11 @@ services:
       - "5432:5432"
 
 volumes:
-  odoo-db-data: {}
+  odoo-db-data:
+    name: odoo-db-data
+  odoo-filestore:
+    name: odoo-filestore
+
+networks:
+  default:
+    name: odoo-network

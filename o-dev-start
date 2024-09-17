@@ -7,7 +7,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-w <workspace>] [-d <devtools-dir>] [--build] [--build-with-cache] [--db]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-v] [-w <workspace>] [-d <devtools-dir>] [-u <ubuntu-version>] [--build] [--build-with-cache] [--db]
 
 Start Docker containers for Odoo development.
 The first build might take a while, since the image is built from scratch.
@@ -27,6 +27,10 @@ Options:
                         tools directory to mount in the Docker container's
                         /home/odoo/bin directory.
                         (default: this tool's directory)
+  -u <ubuntu-version>, --ubuntu-version <ubuntu-version>
+                        Specify with which Ubuntu version to run this container.
+                        (options: jammy|noble)
+                        (default: jammy)
   --build               Force a full rebuild of the Docker image.
   --build-with-cache    Force a rebuild of the Docker image, but using the
                         existing cache.
@@ -88,6 +92,7 @@ die() {
 parse_params() {
   ODOO_WORKSPACE_DIR=~/code/odoo
   ODOO_DEVTOOLS_DIR="$script_dir"
+  UBUNTU_VERSION=jammy
   build=false
   build_with_cache=false
   db=false
@@ -107,6 +112,10 @@ parse_params() {
         ;;
     -d | --devtools)
         ODOO_DEVTOOLS_DIR="${2:-$ODOO_DEVTOOLS_DIR}"
+        shift
+        ;;
+    -u | --ubuntu-version)
+        UBUNTU_VERSION="${2:-$UBUNTU_VERSION}"
         shift
         ;;
     --build) build=true ;;
@@ -134,7 +143,7 @@ msg "🟣 ${MAGENTA}${B}Odoo Development Container${NOFORMAT}\n"
 
 export ODOO_DEVTOOLS_DIR
 export ODOO_WORKSPACE_DIR
-export UBUNTU_VERSION=noble
+export UBUNTU_VERSION
 
 if $db; then
   msg "🗄️ ${WHITE}${B}Starting the PostgreSQL server${NOFORMAT}"

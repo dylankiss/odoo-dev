@@ -1,5 +1,6 @@
 # Starship configuration
 
+container.disabled = true
 git_branch.disabled = true
 git_commit.disabled = true
 git_state.disabled = true
@@ -9,3 +10,9 @@ package.disabled = true
 [directory]
 truncation_length = 7
 truncation_symbol = '…/'
+
+[hostname]
+ssh_only = false
+
+[username]
+show_always = true
