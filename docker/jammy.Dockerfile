@@ -19,21 +19,21 @@ ADD https://github.com/maxmind/MaxMind-DB/raw/main/test-data/GeoIP2-Country-Test
 
 RUN apt-get update -y && \
     apt-get upgrade -y && \
-    # Install wget to fetch custom Debian packages
-    apt-get install -y --no-install-recommends wget && \
+    # Install curl to fetch custom Debian packages
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl && \
     # Fetch Google Chrome (for web tour tests)
-    wget -q --show-progress --progress=bar:force:noscroll -O chrome.deb \
-    https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_123.0.6312.58-1_amd64.deb && \
+    curl -sSL https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_123.0.6312.58-1_amd64.deb \
+        -o chrome.deb && \
     # Fetch the right version of wkhtmltox
-    wget -q --show-progress --progress=bar:force:noscroll -O wkhtmltox.deb \
-    https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb && \
+    curl -sSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.jammy_amd64.deb \
+        -o wkhtmltox.deb && \
     # Continue install after fetching debs
     apt-get update -y && \
     apt-get install -y --no-install-recommends \
         # Install useful tools and optional Odoo dependencies
-        ca-certificates \
         build-essential \
-        curl \
         ffmpeg \
         flake8 \
         file \
