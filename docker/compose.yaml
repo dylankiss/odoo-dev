@@ -7,6 +7,7 @@ services:
       dockerfile: ./${UBUNTU_VERSION:-jammy}.Dockerfile
       platforms:
         - linux/amd64
+    image: localhost/odoo-dev:${UBUNTU_VERSION:-jammy}
     container_name: odoo-${UBUNTU_VERSION:-jammy}
     hostname: odoo-${UBUNTU_VERSION:-jammy}
     platform: linux/amd64
