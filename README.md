@@ -53,6 +53,11 @@ The container contains some helpful aliases that you can use to run and debug Od
 - `o-bin-c` already contains the addons path for a Community server.
 - `o-bin-e` already contains the addons path for an Enterprise server.
 
+**Upgrading Odoo** (from within the workspace folder)
+- `o-bin-up` can be used instead of `odoo/odoo-bin --upgrade-path=...` with the same arguments.
+- `o-bin-up-c` already contains the addons path for a Community server.
+- `o-bin-up-e` already contains the addons path for an Enterprise server.
+
 **Debugging Odoo** (from within the workspace folder)
 - `o-bin-deb` can be used instead of `odoo/odoo-bin` with the same arguments, and starts a debug session using [`debugpy`](https://github.com/microsoft/debugpy) and waits for your local debugger to connect to it before starting.
 
@@ -91,7 +96,7 @@ The configuration for the Docker containers is located in the `docker` folder in
 
 The development container configuration is laid out in the [`Dockerfile`](docker/Dockerfile) and does the following:
 
-- Use [Ubuntu 24.04 (Noble Numbat)](https://hub.docker.com/_/ubuntu) as a base image.
+- Use [Ubuntu 22.04 (Jammy Jellyfish) or 24.04 (Noble Numbat)](https://hub.docker.com/_/ubuntu) as a base image.
 - Install all required and useful Debian packages to develop and run Odoo.
 - Install all required `node` modules.
 - Set up an `odoo` user and his environment to use in the container.
