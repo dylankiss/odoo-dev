@@ -65,6 +65,7 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             if result.returncode:
                 failure = True
                 log(f"{tree_prepend} {tl.RED}{tl.B}!{tl.B_END} Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgmerge{tl.I_END}!{tl.NOFORMAT}")
+                log(f"\n{result.stderr.decode()}\n")
                 continue
 
             result = subprocess.run(
@@ -81,6 +82,7 @@ def update_translation_files(modules, lang_codes, addons_path, base_i18n_path, t
             if result.returncode:
                 failure = True
                 log(f"{tree_prepend} {tl.RED}{tl.B}!{tl.B_END} Updating {tl.U}{po_file_path}{tl.U_END} failed during {tl.I}msgattrib{tl.I_END}!{tl.NOFORMAT}")
+                log(f"\n{result.stderr.decode()}\n")
             else:
                 success = True
                 log(f"{tree_prepend} Updated {tl.U}{po_file_path}{tl.U_END} ✔️")
